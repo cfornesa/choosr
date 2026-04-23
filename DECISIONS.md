@@ -1,101 +1,98 @@
-# Decisions
-<!-- IMPORTANT: Load CONSTRAINTS.md and DESIGN.md alongside this
-file at every session start. Constraints listed in CONSTRAINTS.md are binding regardless of what is recorded here. Design identity in DESIGN.md informs all gallery
-options regardless of session context. -->
+# DECISIONS.md
 
-## Project Profile
+## Project: Data-to-Art Studio
 
-<!-- Operational details for this project. Kept here, not in AGENTS.md,
-     to keep the root instruction file framework-agnostic and safe to
-     publish. Do not put credentials, hostnames, file paths, or API
-     keys here — those belong in .env.
+### Project Description
 
-     An agent fills this section during Phase 1 by asking the person
-     plain-language questions. If this section is empty, ask before
-     writing any code. See AGENTS.md → Detect the Framework. -->
+A generative art workstation where users bring data (uploaded CSV, TSV, or XLSX files, curated preloaded public datasets, or live API feeds), map data columns to visual dimensions, and compose generative artwork by choosing art styles, color palettes, and rendering modes. Users can create accounts, save artwork state, and share their pieces via a persistent gallery. Built as a two-phase project.
 
-- **Stack:** <!-- e.g. Next.js 15 + TypeScript, FastAPI + Python 3.12 -->
-- **Deployment:** <!-- type only — e.g. "Node.js PaaS, single process,
-  npm start". No hostnames or server details. -->
-- **Database:** <!-- type and ORM only — e.g. "SQLite via Drizzle ORM".
-  No file paths. -->
-- **Version pins:** <!-- key constraints — e.g. "Node 20, Next.js 15.x".
-  None if using stable defaults. -->
-- **Framework AGENTS.md:** <!-- e.g. "nextjs/AGENTS.md does not yet
-  exist — sessions follow root AGENTS.md only" -->
-- **Profile switch rule:** Stop before touching existing files. Record
-  current state and reason here. Confirm new profile explicitly. Flag
-  every file needing migration before starting.
+***
 
----
+## Stack
 
-## REVIEW REQUIRED — Read before starting next session
-<!-- Agent writes this block. Human must confirm or override each item before new code is written. -->
-- [ ] [DATE] [TOOL] Conservative default applied: [what was chosen and why]
-- [ ] [DATE] Gallery deferred: [what decision was skipped and what options were considered]
+| Layer | Technology |
+|---|---|
+| Frontend | HTML, CSS, JavaScript (HTML5 Canvas for rendering) |
+| Backend | PHP |
+| Database | MySQL |
+| Build tools | None required for Phase 1 |
 
----
+***
 
-## Example Phase 1 — [Tool Name]
+## Phases
 
-<!-- Created by the agent at session start.
-     Record every significant decision made during this phase.
-     Use bullet points. One fact per bullet.
-     Flag gaps or deferred items as noted below. -->
+### Phase 1 — Core Workstation
+- Data ingest and normalization pipeline (CSV, TSV, XLSX → common schema)
+- Preloaded public dataset library UI
+- Live API feed ingestion with MySQL TTL caching
+- HTML5 Canvas generative art renderer
+- Full creative controls: column-to-visual-dimension mapping, art style selector, palette picker, rendering mode selector
+- PNG image export via Canvas blob download
 
-### Stack Confirmed
-<!-- e.g. which framework, runtime, package manager, config approach -->
+### Phase 2 — Accounts, Save, and Share
+- User authentication (registration, login, sessions)
+- Persistent artwork state serialization and storage in MySQL
+- User gallery and shareable artwork links
+- Social/discovery features (TBD)
 
-### Schema and Data Decisions
-<!-- e.g. ID strategy, timestamp format, default values, unique columns -->
+***
 
-### Files Created
-<!-- List every file created and its purpose -->
+## Data Sources
 
-### Vendor Dependencies Added
-<!-- For each: name, purpose, sends data off-domain (yes/no),
-     self-hosting alternative, documented in docs/dependencies.md -->
+| Source Type | Format | Ingest Method |
+|---|---|---|
+| User uploads | CSV, TSV, XLSX | PHP file handler → normalized schema → MySQL |
+| Preloaded public datasets | Pre-normalized | Curated by developer, selectable from library UI |
+| Live API feeds | JSON (external APIs) | PHP fetch → MySQL cache with TTL |
 
-### Environment Variables Required
-<!-- List names only — no values. e.g.:
-     - DATABASE_URL
-     - API_KEY_NAME -->
+All three source types converge into a single normalized column/row schema before the frontend canvas renderer consumes the data.
 
-### Gaps and Deferred Items
-<!-- Any Phase 1 deliverable not completed, logged for the next phase -->
+***
 
-### Unresolved Checkpoints Entering Phase 2
-- [ ] <!-- item -->
+## Creative Controls (Full User Control)
 
----
+Users have full control over the following dimensions:
 
-## Example Phase 2 — [Tool Name]
+- **Column mapping**: Assign any data column to visual properties (color, size, position, opacity, stroke weight, density, etc.)
+- **Art style**: Choose from enumerated rendering modes (e.g., particle field, geometric grid, flowing curves — to be defined in Phase 1 scoping)
+- **Color palette**: User-selectable or custom palette applied across the canvas
+- **Rendering mode**: Controls how the art engine interprets and draws mapped data
 
-<!-- Same structure as Phase 1. Add a "Corrections Applied" subsection
-     if prior-phase errors were fixed in this session. -->
+***
 
-### Phase N Gap Discovered
-<!-- If a prior-phase deliverable was missing, record it here with a
-     note that it is a prior-phase gap, not a Phase 2 decision. -->
+## Model Routing
 
-### Components Built
-<!-- List each component/route/feature with its file path and purpose -->
+| Concern | Tool | Model |
+|---|---|---|
+| Scaffold and project setup | Vibe CLI | Devstral 2 |
+| PHP backend and MySQL schema | Opencode Go | Kimi K2.6 |
+| HTML5 Canvas renderer and generative art JS | Opencode Go | MiMo-V2-Pro |
+| UI/UX components and creative controls | Opencode Go | GLM-5.1 |
+| Database queries and API feed caching | Opencode Zen | Nemotron 3 Super Free |
+| Inline fixes and completions | Opencode Zen | Ling 2.6 Flash Free |
+| Final review and refactor pass | Vibe CLI | Devstral 2 |
 
-### Corrections Applied
-<!-- What was wrong, what was fixed, what file changed -->
+> **Notice**: Opencode Zen free models (Nemotron 3 Super Free, Ling 2.6 Flash Free) may collect prompt data for model improvement. Do not submit personal user data or sensitive content through these models during development.
 
-### Vendor Dependencies Added
-<!-- Same format as Phase 1 -->
+> **PRC-Affiliated Model Notice**: Opencode Go routes include GLM-5.1, Kimi K2.6, and MiMo-V2-Pro, which are PRC-affiliated. These models must not be used for projects involving sensitive humanitarian content (Uyghur, Rohingya, Palestine, Sudan, Congo). This project does not involve such content and is cleared for full Opencode Go use.
 
-### Environment Variables Required
-<!-- Cumulative list — include all variables from prior phases plus new -->
+***
 
-### Unresolved Checkpoints Entering Phase 3
-- [ ] <!-- item -->
+## Architecture Notes
 
----
+- All data sources normalize to a shared internal schema before the canvas renderer consumes them
+- PHP handles file parsing, normalization, authentication, and API caching
+- MySQL stores normalized datasets, user accounts, saved artwork state, and API cache entries
+- JavaScript (Canvas API) handles all rendering client-side; PHP serves data via JSON endpoints
+- No build tools required in Phase 1; may introduce a bundler in Phase 2 if complexity warrants it
 
-<!-- Add a new dated section at the start of each phase following
-     the same pattern. Resolved checkpoints from the prior phase
-     should be marked [x] and left in place — do not delete them.
-     They are the audit trail. If empty, begin with Phase 1. -->
+***
+
+## Unresolved Checkpoints
+
+- [ ] DESIGN.md References must be completed before the first coding session
+- [ ] Curated public dataset list not yet defined (required for Phase 1 library UI)
+- [ ] Live API feed sources not yet selected
+- [ ] Art styles and rendering modes not yet enumerated (required before canvas renderer is built)
+- [ ] Normalized dataset schema not yet formally specified
+- [ ] Phase 2 gallery and sharing feature scope not yet detailed

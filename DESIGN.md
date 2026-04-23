@@ -15,142 +15,138 @@
 
      If this file is empty or incomplete, the agent asks for References
      before any other design question. It never asks for Declared
-     Preferences first.
-
-     Taste constraints recorded here are distinct from technical
-     constraints in CONSTRAINTS.md. Do not move entries between files
-     unless a taste preference becomes a technical requirement. -->
+     Preferences first. -->
 
 ---
 
 ## References
-<!-- HUMAN-AUTHORED
-     The most important section. Fill this before anything else.
-     The agent derives everything downstream from what you put here.
-     Screenshots and art files should be committed to your repository.
-     URLs are acceptable if files are not available. -->
+<!-- HUMAN-AUTHORED -->
 
 - **Admired applications or websites:**
-  <!-- Filenames of screenshots in your repo, or URLs.
-       Example: screenshots/notion-dark.png, https://example.com -->
+  - https://cfornesa.com — personal site; cozy iMac workspace metaphor; retro-modern
+    hybrid; flat 2D CSS geometry; neo-brutalist hard offset shadows; system-UI type stack
+  - https://creatrweb.com — framework as philosophy; human ownership embedded in
+    structure; argument made visible through design
+  - https://open.creatrweb.com — bombastic open-canvas identity; asymmetric layouts;
+    tri-color primary scheme; abstract visual elements as argument, not decoration
+  - https://nekoweb.org — candid tinkerer's voice; texture and deliberate imperfection
+  - https://neocities.org — personal web spirit; individual ownership over generic platform
 
 - **Admired art, design work, or visual culture:**
-  <!-- Filenames, URLs, or plain descriptions.
-       Example: Saul Bass film posters, brutalist typography,
-       screenshots/bauhaus-ref.jpg -->
+  - https://fornesusart.com — abstract, emotionally driven work across painting, drawing,
+    mixed media, photography, and digital art; introspective and visionary;
+    "Open your mind" as tonal anchor; chromatic and emotionally varied; abstract-first
 
-- **Admired writing or editorial voices:**
-  <!-- Publications, authors, or specific pieces whose tone or
-       structure you want to echo. These inform copy direction
-       as much as visual references do. -->
+- **Admired writing or editorial voice:**
+  - https://fornesus.blog — first-person, present tense, unguarded and reflective without
+    being performative; direct without polish; intimate but never indulgent; weight comes
+    from honesty, not from asking for sympathy
 
-- **Logo:**
-  <!-- Filename if available in your repository.
-       Example: assets/logo.svg
-       Leave blank if none exists yet. -->
+- **Logo:** TBD
 
 - **Existing brand materials:**
-  <!-- Any other files — type specimens, color swatches, style guides —
-       already committed to the repo. -->
+  - Visual identity draws from fornesusart.com color range: emotionally varied, chromatic,
+    abstract-first. No logo SVG, type specimen, or color swatch file committed yet.
 
 ---
 
 ## Derived Identity
 <!-- AGENT-PROPOSED, HUMAN-CONFIRMED
-     The agent fills this section collaboratively after References exist,
-     by asking questions and proposing observations. You confirm, correct,
-     or expand each entry before it is considered stable.
-     Do not fill this section yourself before discussing it with the agent —
-     the value is in the derivation process, not the output alone. -->
+     Confirmed by owner, 2026-04-23. -->
 
-- **What your references share:**
-  <!-- The common thread the agent observes across your inputs.
-       Example: "High contrast, sparse layout, type as the primary
-       visual element, no decorative illustration." -->
+This application is a working atelier — a dark, purposeful creative environment built
+for making, not for impressing. The user is handed an instrument, not onboarded into
+a product. Visual and tonal decisions are traceable to a specific person's specific
+practice, not to a generic generative art tool category.
 
-- **The tension you are navigating:**
-  <!-- The productive contradiction in your references — the thing
-       that makes your aesthetic specific rather than generic.
-       Example: "Warm and personal, but not precious or nostalgic." -->
+- **What the references share:** A designed environment that belongs to a specific person.
+  Whether the cozy iMac workspace of creatrweb.com or the expressive open canvas of
+  open.creatrweb.com, the user always feels like they are entering *someone's* space.
+  Here, the user sits down at a working atelier — a tool built for making, not for
+  impressing. The emotional range of fornesusart.com (introspective, visionary,
+  chromatic) anchors the palette and the ambient mood.
 
-- **What you dislike in contrast:**
-  <!-- Defined negatively. Taste is largely shaped by refusal.
-       Be specific — "corporate" is a start, but "the visual language
-       of SaaS landing pages: gradient CTAs, stock photography of
-       smiling teams, artificial whitespace" is more useful.
-       This section informs the agent's gallery options as strongly
-       as positive preferences do. -->
+- **The tension being navigated:** The generative canvas must be the hero without making
+  the controls feel like an afterthought. The workstation metaphor keeps controls feeling
+  intentional and physical — instruments in a studio — rather than a UI feature checklist.
 
-- **The feeling on first load:**
-  <!-- One to three words or a short sentence describing the immediate
-       emotional register you want a first-time visitor to experience.
-       Example: "Curious. Like finding someone's personal library." -->
+- **What must be refused:** Light-themed generic art tool aesthetics. SaaS softness.
+  Rounded-corner-everything. Gradients used decoratively. Stock photography. Any UI
+  choice that could belong to a Figma plugin or a no-code product page. Anything that
+  could have been produced by a generic AI without a specific human author behind it.
+
+- **The feeling on first load:** Ease and invitation. A dark atelier, ready for work.
+  The canvas glows. The user is not being onboarded — they are being handed an instrument.
 
 ---
 
 ## Declared Preferences
-<!-- HUMAN-AUTHORED, after Derived Identity is complete.
-     These are starting points, not permanent constraints.
-     If you change your mind, update this section and note the
-     change in DECISIONS.md. Do not move taste preferences to
-     CONSTRAINTS.md unless they become technical requirements. -->
+<!-- HUMAN-AUTHORED, after Derived Identity is complete. -->
 
 - **Color direction:**
-  <!-- A palette, a mood, specific hex values, or a reference.
-       Example: "Dark background. Warm off-white text. One accent
-       color, used sparingly — leaning toward ochre or rust." -->
+  Dark atelier palette. Ground: deep warm near-black (`#1c1814`). Panel/control
+  surfaces: slightly lighter warm dark (`#242018`). Canvas area: pure black (`#0d0d0d`)
+  so generated artwork glows against it. Accent trio drawn from fornesusart.com
+  emotional range:
+    - Gold/amber accent: `#c9922a` (warm, anchoring)
+    - Slate-teal accent: `#4a8fa8` (cool contrast)
+    - Off-white text: `#f0ece4` (warm, readable against dark ground)
+  Hard offset shadows: `4px 4px 0px` in gold or teal depending on context.
+  No gradients on UI surfaces. No soft drop shadows.
 
 - **Type direction:**
-  <!-- Specific typefaces, or a descriptive direction if typefaces
-       are not yet chosen.
-       Example: "Serif for body, monospace for metadata and code.
-       Nothing geometric or neutral — something with visible history." -->
+  System-UI stack for all UI and body copy (`system-ui, -apple-system, BlinkMacSystemFont`).
+  Courier New / monospace for data readouts, column labels, metadata, and any value
+  that needs to read as machine-output or instrument feedback.
+  No web fonts loaded — no external network requests for type, no FOUT.
 
 - **Layout disposition:**
-  <!-- How you want space and content to relate.
-       Example: "Generous margins. Text width constrained. No sidebars.
-       Let the content breathe." -->
+  Canvas-centered. The generative canvas occupies the dominant visual zone — all
+  controls, panels, and toolbars are secondary instruments arranged around it.
+  Desktop: side panel(s) for controls, canvas as hero. Mobile: canvas full-width,
+  controls in a collapsible bottom sheet. No generic responsive grid collapse —
+  mobile gets a deliberate layout of its own.
 
 - **Motion and interaction:**
-  <!-- Your position on animation, transitions, and interactive behavior.
-       Example: "No decorative animation. Transitions only where they
-       carry meaning. Fast." -->
+  No decorative animation. Transitions only where they carry meaning: panel open/close,
+  canvas state change, control hover elevation. Standard duration: 0.2s ease.
+  Canvas rendering animation is intentional and user-triggered — not ambient or
+  auto-playing.
 
 - **What must never appear:**
-  <!-- Visual or tonal elements that would immediately feel wrong.
-       These are taste refusals, not technical constraints.
-       Example: "Stock photography. Gradient hero sections.
-       Auto-playing anything. Emoji used decoratively." -->
+  Gradients on UI surfaces (canvas rendering output is exempt — user controls that).
+  Stock photography. Blur-heavy sections. Soft drop shadows. Icon libraries
+  (Unicode symbols preferred). Auto-playing media. Emoji as ornament. Any visual
+  language that signals "SaaS product" rather than "personal creative tool."
 
 ---
 
 ## Observed Taste
 <!-- AGENT-PROPOSED, HUMAN-CONFIRMED
-     Populated during sessions when the agent notices a signal —
-     an enthusiasm, a complaint, a reference made in passing,
-     an implied direction not yet consciously claimed.
-     Proposed at session end alongside MEMORY.md updates.
-     Format mirrors MEMORY.md:
+     Populated during sessions when the agent notices a signal. -->
 
-     YYYY-MM-DD · CATEGORY · Observation in one sentence.
-         [Optional: the exact exchange or context that surfaced it]
+2026-04-23 · DIRECTION · Chose dark atelier ground over light studio daylight explicitly
+    because most generative art tools default to light — distinctiveness as a deliberate
+    design value, not just aesthetic preference.
+    [User: "a dark atelier at night would be more unique compared to most light-themed
+    artistic websites."]
 
-     Valid categories:
-     INFLUENCE · REFUSAL · TENSION · VOICE · DIRECTION
+2026-04-23 · INFLUENCE · fornesusart.com anchors the palette — emotionally varied,
+    chromatic, abstract-first — rather than inheriting directly from either prior project.
+    [User: "the fornesusart.com color scheme may be more varied, which is what I envision
+    for this application."]
 
-     Examples:
-     2026-04-10 · REFUSAL · Finds AI-generated imagery dishonest
-         rather than merely aesthetically displeasing.
-         [User: "it's not that I dislike how it looks, I dislike
-         what it means"]
-     2026-04-10 · TENSION · Wants the site to feel personal but
-         is resistant to anything that reads as self-indulgent.
-     2026-04-10 · INFLUENCE · Referenced Saul Bass twice without
-         being asked about visual influences.
+2026-04-23 · TENSION · Canvas must glow as the hero; controls must feel like instruments,
+    not a feature list. Workstation metaphor holds both in tension without either dominating
+    the other inappropriately.
 
-     Keep under 50 entries. When approaching the limit, ask the
-     user to review — consolidate stable patterns into Derived
-     Identity and archive older entries to docs/design-archive.md. -->
+2026-04-23 · REFUSAL · Actively resists any visual outcome that could belong to a generic
+    generative art tool, Figma plugin, or no-code product page — authenticity traceable
+    to a specific person's practice is non-negotiable.
+
+2026-04-23 · VOICE · The user is handed an instrument, not onboarded into a product.
+    Ease and invitation are the emotional targets on first load — comfort without
+    condescension.
 
 ---
 
