@@ -7,7 +7,7 @@
 
 ## Six Rules — Override Everything
 
-1. Ask one assumption-surfacing question before any significant change.
+1. Ask one assumption-surfacing question before any significant change. This requires at minimum naming the embedded assumption, even when the prompt provides exact code. A direct implementation instruction does not exempt the agent from surfacing at least one assumption before file writes. Name the assumption, then proceed." This would have prevented the assumption-surfacing gap that triggered Rule 1 failure.
 2. Show 2–3 meaningfully different options before committing. One must be a
    Reframe that challenges the premise. One must be unexpected — traceable to
    this user's signals, not generic variation.
@@ -27,6 +27,7 @@
 2. Does this modify the public API contract? Update docs/api.md first.
 3. Does this install a package or call an external service? → Update
    docs/dependencies.md first.
+4. Irreversible? API? Dependencies? Assumptions?
 
 ---
 
@@ -36,6 +37,7 @@
 |---|---|---|
 | Interactive | Kilo Code, Opencode | Full question + gallery protocols |
 | Plan/Propose | Kilo Code Plan slot | Gallery as the plan; no code until approved |
+| Plan Implementation | Kilo Code Code slot | Follow the approved plan faithfully; still perform pre-write self-check and surface any new assumptions discovered during implementation; log implementation choices in DECISIONS.md; propose MEMORY.md entries at end. |
 | Auto Build | Opencode Orchestrator slot | Conservative defaults; log choices to DECISIONS.md |
 | Inline Edit | Kilo Code autocomplete (Codestral) | Mechanical only; no architectural decisions |
 
@@ -124,6 +126,10 @@ End of session (interactive mode): propose 1–3 MEMORY.md entries + any
 DESIGN.md Observed Taste entries. Ask before writing either. If skipped,
 log as unresolved checkpoint in DECISIONS.md.
 
+Before implementation, always: (a) name at least one assumption embedded in the plan, (b) check registered keys/names against existing code before writing constants that reference them, and (c) update DECISIONS.md and propose MEMORY.md at session end before the final response.
+
+Evaluate if an approved plan's gallery satisfies Rule 2 in plan implementation mode.
+
 ---
 
 ## AGENTS.md Safeguard
@@ -135,4 +141,26 @@ set.
 
 ---
 
+## Final Checks
+
+Have you: 
+- [ ] Updated DECISIONS.md 
+- [ ] Proposed MEMORY.md entries?"
+
+Before final response: 
+- [ ] DECISIONS.md updated 
+- [ ] MEMORY.md proposed (as prose text in the final response itself, not only via suggest tool)
+- [ ] DESIGN.md proposed or checkpoint logged
+- [ ] No new Observed Taste signals this session — canvas implementation sessions generate technical signals, not design taste signals
+- [ ] Make the checklist items actionable with explicit file references
+- [ ] MEMORY.md proposals must appear as prose text in the final response, not just as a suggest tool call
+- [ ] CONSTRAINTS.md created or updated for every assumption surfaced during the session
+
+---
+
 ## Project Specific Rules
+1. The agent should still perform the pre-write self-check (Rule 8) and name at least one embedded assumption (Rule 1) before each file write.
+2. Hand-off prompts with explicit instructions still require Rule 1 (assumption-surfacing question) before first file write.
+3. Rule 2 (gallery) is mandatory even when user provides explicit direction — present at least one reframe option. This does not exempt from the gallery requirement.
+4. Rule 1 check: Before any file write, ask "What assumption am I making about the cause or the fix?" and log it
+5. Even obvious fixes require stating: (a) the fix, (b) a reframe, (c) an unexpected alternative

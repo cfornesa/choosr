@@ -8,7 +8,11 @@
 
      Do not move taste preferences here from DESIGN.md unless they
      have become technical requirements. Do not record model routing
-     preferences here — those belong in DECISIONS.md. -->
+     preferences here — those belong in DECISIONS.md.
+     
+     Constraints are permanent until explicitly lifted by the owner.
+     When a constraint is lifted, mark it LIFTED with date and reason
+     rather than deleting it, so the decision history is preserved. -->
 
 ---
 
@@ -120,6 +124,10 @@ data collection terms.
 
 ---
 
-<!-- Constraints are permanent until explicitly lifted by the owner.
-     When a constraint is lifted, mark it LIFTED with date and reason
-     rather than deleting it, so the decision history is preserved. -->
+### C-07 · Login API Session Keys
+
+**CONSTRAINT:** The login API (`api/auth/login.php`) sets `$_SESSION['user_id']` and `$_SESSION['email']` but does not set `$_SESSION['username']`. Auth detection must not depend on `$_SESSION['username']` being populated — use `data-authenticated` attribute or `$_SESSION['email']` as fallback.
+
+**SCOPE:** Auth state detection in app.js, studio.php data attribute population.
+
+**SET:** 2026-04-24 · Session 17 — discovered during auth panel regression investigation.

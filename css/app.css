@@ -1,0 +1,630 @@
+/* =================================================================
+   Data-to-Art Studio — App Styles
+
+   Design identity: Dark atelier. Canvas as hero, controls as instruments.
+   No gradients on UI surfaces. No soft drop shadows. Hard offsets only.
+   System-UI type stack. No external fonts.
+
+   Palette (from DESIGN.md):
+     Ground:          #1c1814
+     Panel/control:   #242018
+     Canvas area:     #0d0d0d
+     Gold accent:     #c9922a
+     Slate-teal:      #4a8fa8
+     Off-white text:  #f0ece4
+   ================================================================= */
+
+/* ─── Reset & Base ────────────────────────────────────────────────── */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: #1c1814;
+  color: #f0ece4;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Header ──────────────────────────────────────────────────────── */
+
+#dta-header {
+  background: #242018;
+  padding: 12px 24px;
+  border-bottom: 2px solid #c9922a;
+  box-shadow: 4px 4px 0px #000000;
+}
+
+#dta-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #f0ece4;
+}
+
+/* ─── Error / Status Display ──────────────────────────────────────── */
+
+#dta-error-display {
+  display: none;
+  padding: 8px 16px;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+#dta-error-display.dta-visible {
+  display: block;
+}
+
+#dta-error-display.dta-error {
+  background: #3a1a1a;
+  color: #e8a0a0;
+  border-bottom: 1px solid #e8a0a0;
+}
+
+#dta-error-display.dta-status {
+  background: #1a2a2a;
+  color: #4a8fa8;
+  border-bottom: 1px solid #4a8fa8;
+}
+
+/* ─── Main Layout: Canvas + Sidebar ───────────────────────────────── */
+
+#dta-main {
+  display: flex;
+  height: calc(100vh - 52px); /* header ~52px */
+  overflow: hidden;
+}
+
+/* Canvas Region — hero, dominant visual zone
+   Border thickened to 2px and shifted from warm #2a2420 to cooler neutral
+   #2a2a2a — visible against the #0d0d0d canvas bg but quieter than the
+   gold-accent sidebar border, reinforcing the gallery-wall metaphor. */
+#dta-canvas-region {
+  flex: 1 1 65%;
+  background: #0d0d0d;
+  border: 2px solid #2a2a2a;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+#dta-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Sidebar — instruments panel */
+#dta-sidebar {
+  flex: 0 0 35%;
+  max-width: 420px;
+  min-width: 280px;
+  background: #242018;
+  border-left: 2px solid #c9922a;
+  box-shadow: -4px 4px 0px #000000 inset;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── Control Group ───────────────────────────────────────────────── */
+
+.dta-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 3px solid #c9922a;
+  padding-left: 12px;
+  margin-top: 4px; /* subtle breathing room at group level */
+}
+
+/* First control group gets extra top margin so it doesn't sit flush
+   against the sidebar top padding — calmer gallery-like first impression */
+.dta-control-group:first-child {
+  margin-top: 8px;
+}
+
+.dta-control-group label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c9922a;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.dta-control-group input[type="file"],
+.dta-control-group select {
+  background: #1c1814;
+  color: #f0ece4;
+  border: 2px solid #2a2a2a;
+  padding: 8px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.dta-control-group select:hover,
+.dta-control-group input[type="file"]:hover {
+  border-color: #c9922a;
+}
+
+.dta-control-group select:focus,
+.dta-control-group input:focus {
+  outline: 2px solid #4a8fa8;
+  outline-offset: -2px;
+}
+
+.dta-button-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dta-button-row button {
+  flex: 1;
+  padding: 10px 12px;
+  min-height: 40px;
+  background: #c9922a;
+  color: #1c1814;
+  border: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.dta-button-row button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000000;
+  filter: brightness(1.1);
+}
+
+.dta-button-row button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000000;
+  filter: brightness(0.9);
+}
+
+.dta-button-row button:focus-visible {
+  outline: 2px solid #4a8fa8;
+  outline-offset: 2px;
+}
+
+.dta-button-row button:nth-child(2) {
+  background: #4a8fa8;
+  color: #1c1814;
+}
+
+/* ─── Controls Container (ColumnMapper + PalettePicker) ───────────── */
+
+#dta-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── Auth Section ─────────────────────────────────────────────────── */
+
+#dta-auth-section {
+  background: #1c1814;
+  border: 1px solid #2a2a2a;
+  border-left: 3px solid #4a8fa8;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+
+#dta-auth-section summary {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a8580;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+
+#dta-auth-section summary:hover {
+  color: #c9922a;
+}
+
+.dta-auth-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+}
+
+.dta-auth-mode-btn {
+  flex: 1;
+  padding: 6px 12px;
+  background: #1c1814;
+  color: #6a6560;
+  border: 1px solid #2a2a2a;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.dta-auth-mode-btn:hover {
+  background: #2a2620;
+  color: #f0ece4;
+}
+
+.dta-auth-mode-btn.active {
+  background: #c9922a;
+  color: #1c1814;
+  border-color: #c9922a;
+}
+
+.dta-auth-mode-btn:focus-visible {
+  outline: 2px solid #4a8fa8;
+  outline-offset: -2px;
+}
+
+.dta-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dta-auth-form label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #f0ece4;
+  margin-top: 4px;
+}
+
+.dta-auth-form input {
+  background: #242018;
+  color: #f0ece4;
+  border: 1px solid #2a2a2a;
+  padding: 7px 10px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  transition: border-color 0.15s;
+}
+
+.dta-auth-form input:hover {
+  border-color: #4a4a44;
+}
+
+.dta-auth-form input:focus {
+  outline: 2px solid #4a8fa8;
+  outline-offset: -2px;
+}
+
+.dta-auth-form button[type="submit"] {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #4a8fa8;
+  color: #1c1814;
+  border: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.dta-auth-form button[type="submit"]:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000000;
+  filter: brightness(1.1);
+}
+
+.dta-auth-form button[type="submit"]:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #000000;
+  filter: brightness(0.9);
+}
+
+.dta-auth-form button[type="submit"]:focus-visible {
+  outline: 2px solid #c9922a;
+  outline-offset: 2px;
+}
+
+#dta-auth-status {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4a8fa8;
+  font-family: 'Courier New', monospace;
+  min-height: 18px;
+}
+
+.dta-auth-logout-btn {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #3a1a1a;
+  color: #e8a0a0;
+  border: 1px solid #555555;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #000000;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.dta-auth-logout-btn:hover {
+  background: #5a2a2a;
+  color: #f0ece4;
+}
+
+.dta-auth-logout-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000000;
+}
+
+.dta-auth-logout-btn:focus-visible {
+  outline: 2px solid #4a8fa8;
+  outline-offset: 2px;
+}
+
+/* ─── Auth State-Based Visibility ────────────────────────────────── */
+
+/* When logged in, hide the forms container (tabs + forms) entirely */
+#dta-auth-section.dta-auth-logged-in #dta-auth-forms-container {
+  display: none !important;
+}
+
+/* When logged out, hide the logout button */
+#dta-auth-section:not(.dta-auth-logged-in) #dta-logout-btn {
+  display: none;
+}
+
+/* ─── Empty State Overlay ─────────────────────────────────────────── */
+
+#dta-empty-state {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(19, 18, 16, 0.92);
+  padding: 24px 32px;
+  border: 1px solid #2a2a2a;
+  box-shadow: 4px 4px 0px #000000;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#dta-empty-state p {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #8a8580;
+  margin: 0;
+}
+
+#dta-empty-state.dta-visible {
+  display: block;
+}
+
+/* ─── Responsiveness ──────────────────────────────────────────────── */
+
+/* ─── Metadata Panel (Studio) ───────────────────────────────────────── */
+
+#dta-metadata-section {
+  background: #1c1814;
+  border: 1px solid #2a2a2a;
+  padding: 10px;
+}
+
+#dta-metadata-section summary {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4a8fa8;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s;
+}
+
+#dta-metadata-section summary:hover {
+  color: #c9922a;
+}
+
+#dta-metadata-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+#dta-metadata-panel label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c9922a;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+#dta-metadata-panel input[type="text"],
+#dta-metadata-panel textarea {
+  background: #242018;
+  color: #f0ece4;
+  border: 1px solid #2a2a2a;
+  padding: 8px 10px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  transition: border-color 0.15s;
+}
+
+#dta-metadata-panel input[type="text"]:focus,
+#dta-metadata-panel textarea:focus {
+  outline: 2px solid #4a8fa8;
+  outline-offset: -2px;
+  border-color: #4a8fa8;
+}
+
+#dta-metadata-panel textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.dta-visibility-controls {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.dta-visibility-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8a8580;
+  cursor: pointer;
+}
+
+.dta-visibility-controls label:hover {
+  color: #a0a0a0;
+}
+
+.dta-visibility-controls input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #c9922a;
+}
+
+.dta-metadata-save-btn {
+  padding: 8px 12px;
+  background: #4a8fa8;
+  color: #1c1814;
+  border: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin-top: 8px;
+}
+
+.dta-metadata-save-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000000;
+}
+
+.dta-metadata-save-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #000000;
+}
+
+#dta-save-status {
+  font-size: 11px;
+  color: #4a8fa8;
+  margin-top: 4px;
+  font-family: 'Courier New', monospace;
+  min-height: 16px;
+}
+
+#dta-save-status.dta-visible {
+  opacity: 1;
+}
+
+#dta-save-status:not(.dta-visible) {
+  opacity: 0;
+}
+
+/* ─── Button Row Styling (Studio) ────────────────────────────────────── */
+
+.dta-button-row:nth-child(2) button {
+  background: #4a8fa8;
+}
+
+@media (max-width: 1200px) {
+  #dta-sidebar {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  #dta-controls {
+    gap: 16px;
+  }
+
+  .dta-control-group {
+    gap: 6px;
+    padding-left: 10px;
+    margin-top: 3px;
+  }
+
+  .dta-control-group:first-child {
+    margin-top: 6px;
+  }
+
+  .dta-button-row button {
+    padding: 8px 10px;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 1024px) {
+  #dta-sidebar {
+    flex: 0 0 320px;
+    min-width: 260px;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  #dta-controls {
+    gap: 12px;
+  }
+
+  .dta-control-group {
+    gap: 4px;
+    padding-left: 8px;
+    margin-top: 2px;
+  }
+
+  .dta-control-group:first-child {
+    margin-top: 4px;
+  }
+
+  html, body {
+    font-size: 14px;
+  }
+}
