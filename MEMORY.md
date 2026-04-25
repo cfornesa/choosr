@@ -374,3 +374,30 @@
     (`for (var i = 0; i < total; i++)`) applied to all 8 affected styles
     (neuralFlow, pixelMosaic, radialSymmetry, timeSeries, heatMap,
     scatterMatrix, barCode, voronoiCells).
+
+2026-04-25 · ARCHITECTURE · Four art styles (GeometricGrid, VoronoiCells, ScatterMatrix,
+    BarCode) required fixes for Manual mode rendering. GeometricGrid needed
+    `isManualMode` check and centered coordinate calculation like particleField.
+    VoronoiCells needed single cohesive rendering instead of 30 scattered tiny
+    Voronois. ScatterMatrix needed `_drawManualMatrix()` with 50px cells (not 8px
+    tiny cells). BarCode needed `_drawManualBarCode()` drawing horizontal bar code
+    across canvas center instead of scattered mini-barcodes at each data point.
+    Durable: Art styles in Manual mode should draw ONE cohesive visualization
+    using all data points for properties, not multiple mini-visualizations
+    scattered across the canvas.
+
+2026-04-25 · ARCHITECTURE · Canvas transform `ctx.translate(cssWidth/2 + translateX,
+    cssHeight/2 + translateY)` moves origin to canvas center. Art styles must
+    position content relative to transformed origin (0,0 = center) using
+    `startX = -contentWidth/2`, NOT `(w - contentWidth) / 2`. A previous fix
+    incorrectly added offsets that the canvas transform already handles, causing
+    double-application and content appearing in lower-right quadrant.
+    Durable: When renderer translates context to center, styles should center
+    content at origin using negative half-widths, never add cumulative offsets.
+
+2026-04-25 · BUG · voronoiCells sampling loop `for (x = 0; x < w; x += 4)` only
+    covered bottom-right quadrant after canvas transform moved origin to center.
+    Fix: sample from `-w/2` to `w/2` to cover full canvas. The sampling bounds
+    must be relative to the transformed origin, not absolute canvas dimensions.
+    Durable: Any sampling/drawing operation in transformed coordinate space must
+    use bounds centered at (0,0), not top-left-origin bounds.

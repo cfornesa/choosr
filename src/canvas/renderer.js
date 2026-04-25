@@ -635,6 +635,9 @@
     renderConfig.opacity = normOpacity;
     // Flag for art styles to use centered coordinate system (origin is at canvas center after transform)
     renderConfig.manualMode = true;
+    // Pass normalized offset values so styles can position relative to canvas center
+    renderConfig.normX = normX;
+    renderConfig.normY = normY;
 
     switch(styleKey) {
       case 'particleField':

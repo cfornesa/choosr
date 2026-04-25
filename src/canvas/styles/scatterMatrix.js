@@ -25,20 +25,55 @@
       var isManualMode = renderingConfig && renderingConfig.manualMode;
 
       if (isManualMode) {
-        // Draw matrix for each data point (like particleField iterates all points)
-        for (var i = 0; i < dataPoints.length; i++) {
-          var p = dataPoints[i];
-          var cellSize = ((p.size || 0.5) * MAX_SIZE) * 0.08;
-          var rows = Math.max(2, Math.floor(((p.size || 0.5) * MAX_SIZE) * 0.02));
-          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
-          this._drawMatrix(ctx, width, height, rows, cellSize, manualOpacity, p.color || colors[i % colors.length], colors);
-        }
+        // Draw ONE cohesive scatter matrix using data points for styling
+        // Use reasonable cell size (25% of MAX_SIZE = 50px) instead of tiny 8px cells
+        var cellSize = MAX_SIZE * 0.25; // 50px cells
+        var cols = Math.max(4, Math.min(8, Math.ceil(Math.sqrt(dataPoints.length))));
+        var rows = Math.ceil(dataPoints.length / cols);
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : 1;
+        this._drawManualMatrix(ctx, width, height, dataPoints, cols, rows, cellSize, manualOpacity, colors, renderingConfig);
       } else if (dataPoints && dataPoints.length > 0) {
         // In data-driven mode, create a matrix based on pairwise relationships
         var cellSize = Math.min(40, width / Math.ceil(Math.sqrt(dataPoints.length)));
         var rows = Math.ceil(Math.sqrt(dataPoints.length));
         this._drawDataMatrix(ctx, width, height, dataPoints, cellSize, rows, colors, palette);
       }
+    },
+    _drawManualMatrix: function(ctx, w, h, dataPoints, cols, rows, cellSize, opacity, colors, renderingConfig) {
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      // Calculate centered position for the matrix
+      var matrixW = cols * cellSize;
+      var matrixH = rows * cellSize;
+      // Position relative to transformed origin (0,0 = canvas center)
+      var startX = -matrixW / 2;
+      var startY = -matrixH / 2;
+
+      for (var i = 0; i < dataPoints.length && i < cols * rows; i++) {
+        var p = dataPoints[i];
+        var col = i % cols;
+        var row = Math.floor(i / cols);
+        var x = startX + col * cellSize;
+        var y = startY + row * cellSize;
+        var sizeVal = (p.size || 0.5) * cellSize * 0.6;
+        var rotation = (p.rotation || 0) * Math.PI / 180;
+        var color = p.color !== null ? colors[Math.floor(p.color * (colors.length - 1))] : colors[i % colors.length];
+
+        ctx.save();
+        ctx.translate(x + cellSize/2, y + cellSize/2);
+        ctx.rotate(rotation);
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = color;
+        ctx.fillRect(-sizeVal/2, -sizeVal/2, sizeVal, sizeVal);
+        // Add point marker at center
+        ctx.fillStyle = '#ffffff';
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
     },
     _drawMatrix: function(ctx, w, h, rows, cellSize, opacity, color, colors) {
       ctx.save();

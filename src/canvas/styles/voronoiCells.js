@@ -25,18 +25,22 @@
       var isManualMode = renderingConfig && renderingConfig.manualMode;
 
       if (isManualMode) {
-        // Draw voronoi cell for each data point (like particleField iterates all points)
-        // Note: Using simpler fillRect approach instead of getImageData to avoid
-        // coordinate transform conflicts with canvas transforms
-        for (var i = 0; i < dataPoints.length; i++) {
+        // Collect all data points and draw ONE cohesive Voronoi diagram
+        // Position relative to transformed origin (0,0 = canvas center)
+        var points = [];
+        for (var i = 0; i < Math.min(dataPoints.length, 30); i++) {
           var p = dataPoints[i];
           var px = (p.x - 0.5) * width;
           var py = (p.y - 0.5) * height;
-          var radius = ((p.size || 0.5) * MAX_SIZE) * 0.08;
-          var count = Math.floor(((p.size || 0.5) * MAX_SIZE) * 0.02) + 4;
-          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
-          this._drawVoronoi(ctx, width, height, px, py, radius, count, manualOpacity, p.color || colors[i % colors.length], colors);
+          points.push({
+            x: px,
+            y: py,
+            color: p.color !== null ? colors[Math.floor(p.color * (colors.length - 1))] : colors[i % colors.length],
+            size: p.size || 0.5
+          });
         }
+        // Draw cohesive Voronoi from all collected points
+        this._drawVoronoiFromPoints(ctx, width, height, points, dataPoints, palette, renderingConfig);
       } else if (dataPoints && dataPoints.length > 0) {
         // Data-driven: draw voronoi at each data point position
         var points = [];
@@ -76,8 +80,9 @@
       var img = ctx.getImageData(0, 0, w, h);
       var data = img.data;
 
-      for (var y = 0; y < h; y += 4) {
-        for (var x = 0; x < w; x += 4) {
+      // Sample full canvas relative to transformed origin (0,0 = canvas center)
+      for (var y = -h/2; y < h/2; y += 4) {
+        for (var x = -w/2; x < w/2; x += 4) {
           var nearestDist = Infinity;
           var nearestColor = colors[0];
           for (var i = 0; i < points.length; i++) {

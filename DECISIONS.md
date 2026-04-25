@@ -650,6 +650,57 @@ None required — no new constraints identified
 ### MEMORY.md Entry
 2026-04-24 · ARCHITECTURE · Artwork thumbnail generation must occur on both POST (create) and PATCH (update) — PATCH handler must include thumbnail_data in allowed fields and process it identically to POST, including old file cleanup.
 
+---
+
+## Session 27 — Art Style X/Y Centering Fix (2026-04-25)
+
+**Issue:** barCode, scatterMatrix, and voronoiCells appear offset from center in Manual mode when X/Y visual dimensions are at default (0, 0). particleField positions correctly.
+
+**Root Cause:** The renderer applies canvas transforms (`translate(cssWidth/2 + translateX, cssHeight/2 + translateY)`) BEFORE calling style render methods, moving the coordinate origin to canvas center plus X/Y offset. However:
+- barCode and scatterMatrix calculate `startX/startY` using `(w - totalBarsWidth) / 2` and `(w - matrixW) / 2` — these position relative to top-left origin (0,0), ignoring the canvas transform
+- voronoiCells uses data points but generates them around fixed (0.5, 0.5) grid, not accounting for visual dimension offset
+
+**Solution:** Pass normX/normY via renderingConfig and apply offset in each style's manual mode positioning. Consistent with particleField's pattern.
+
+### Changes Made
+
+**renderer.js (line ~637):**
+- Added `renderConfig.normX = normX` and `renderConfig.normY = normY` before calling style render methods
+
+**barCode.js:**
+- `_drawManualBarCode()` now accepts `renderingConfig` parameter
+- Calculates `offsetX = (normX - 0.5) * w` and `offsetY = (normY - 0.5) * h`
+- Applies offsets to `startX` and `startY`
+
+**scatterMatrix.js:**
+- `_drawManualMatrix()` now accepts `renderingConfig` parameter  
+- Same offset calculation and application as barCode
+
+**voronoiCells.js:**
+- Manual mode now reads normX/normY from renderingConfig
+- Applies offsetX/offsetY to each point position during point generation
+
+### Files Modified
+| File | Lines | Purpose |
+|------|-------|---------|
+| src/canvas/renderer.js | +2 lines | Pass normX/normY via renderConfig |
+| src/canvas/styles/barCode.js | +9 lines | Manual mode offset handling |
+| src/canvas/styles/scatterMatrix.js | +9 lines | Manual mode offset handling |
+| src/canvas/styles/voronoiCells.js | +7 lines | Manual mode offset handling |
+
+### Assumptions Surfaced
+1. The canvas transform stack (translate/rotate/scale) already handles positioning — styles just need to apply visual dimension offset to their centered coordinates
+2. normX/normY of 0.5 = centered (no shift), <0.5 = up/left, >0.5 = down/right
+3. Offset formula `(normX - 0.5) * w` matches how particleField positions particles in manual mode
+
+### Success Criteria
+- All three styles render centered when X=0, Y=0 (normX/normY = 0.5)
+- Moving X/Y sliders shifts the artwork in the corresponding direction
+- Behavior consistent with particleField
+
+### Unresolved Checkpoints
+- [ ] Manual visual verification in browser required
+
 ***
 
 ## Session 27 — Manual Dimension Visualization Bug Fix (2026-04-25) — ADDENDUM
@@ -1457,3 +1508,112 @@ This makes x=0.5 map to px=0 (the origin/canvas center after transform).
 5. All 13 art styles render centered correctly
 6. Data-Driven mode continues to work as before
 
+
+
+---
+
+## Session 33 — Art Style Coordinate System Fix (2026-04-25)
+
+**Problem:** barCode, scatterMatrix, and voronoiCells render at wrong positions in Manual mode. Previous fix attempted to add X/Y offsets to style positioning, but this created double-application problem.
+
+**Root Cause Analysis:** The renderer applies `ctx.translate(cssWidth/2 + translateX, cssHeight/2 + translateY)` which moves the origin to canvas center. After this transform:
+- `(0, 0)` = canvas center (adjusted by X/Y sliders)
+- `(-w/2, -h/2)` = top-left of canvas
+- `(w/2, h/2)` = bottom-right of canvas
+
+But styles calculated positions using `(w - totalBarsWidth) / 2` which assumes top-left origin. This placed content at `canvas_center + content_offset` = lower-right quadrant.
+
+**Solution:** Position elements relative to the transformed origin (0, 0 = canvas center), not the top-left corner. Remove all offset calculations added by the previous fix.
+
+### Changes Applied
+
+**barCode.js - `_drawManualBarCode()`:**
+- Removed offset calculation (lines 57-64 from previous fix)
+- Changed `startX = (w - totalBarsWidth) / 2` → `startX = -totalBarsWidth / 2`
+- Changed `startY = (h - barHeight) / 2` → `startY = -barHeight / 2`
+
+**scatterMatrix.js - `_drawManualMatrix()`:**
+- Removed offset calculation (lines 51-57 from previous fix)
+- Changed `startX = (w - matrixW) / 2` → `startX = -matrixW / 2`
+- Changed `startY = (h - matrixH) / 2` → `startY = -matrixH / 2`
+
+**voronoiCells.js - `_drawVoronoiFromPoints()`:**
+- Removed offset calculation in manual mode block (lines 30-33)
+- Changed point generation: `px = (p.x - 0.5) * width` (removed `+ offsetX`)
+- Changed sampling loop: `for (x = 0; x < w; x += 4)` → `for (x = -w/2; x < w/2; x += 4)`
+- Changed sampling loop: `for (y = 0; y < h; y += 4)` → `for (y = -h/2; y < h/2; y += 4)`
+
+### Files Modified
+- `src/canvas/styles/barCode.js` - Removed offset, centered at origin
+- `src/canvas/styles/scatterMatrix.js` - Removed offset, centered at origin
+- `src/canvas/styles/voronoiCells.js` - Removed offset, centered at origin, fixed sampling bounds
+
+### Assumption Surfaced
+1. The canvas transform already handles X/Y visual dimension offsets - styles should NOT add additional offsets
+2. After `ctx.translate(cssWidth/2, cssHeight/2)`, coordinate `(0,0)` is at canvas center
+3. To center content at origin: `startX = -contentWidth / 2` (not `(w - contentWidth) / 2`)
+4. voronoiCells sampling must cover `[-w/2, w/2)` and `[-h/2, h/2)` to sample full canvas
+
+### Verification Checklist
+- [ ] barCode renders centered at canvas origin in Manual mode
+- [ ] scatterMatrix renders centered at canvas origin in Manual mode
+- [ ] voronoiCells samples full canvas (not just bottom-right quadrant)
+- [ ] X/Y sliders shift artwork correctly (via canvas transform, not style offsets)
+- [ ] No double-offset when X/Y sliders are moved
+- [ ] All three styles render correctly in both Manual and Data-Driven modes
+
+### Reference
+- `src/canvas/styles/particleField.js` - Correct manual mode pattern (lines 124-131): positions relative to origin without adding offset
+
+---
+
+## Session 32 — Art Style Manual Mode Rendering Fixes (2026-04-25)
+
+**Problem:** Four art styles (GeometricGrid, VoronoiCells, ScatterMatrix, BarCode) rendered incorrectly in Manual mode:
+1. **GeometricGrid** appeared offset from center (rendered at wrong position)
+2. **VoronoiCells** appeared offset from center (multiple tiny cells scattered)
+3. **ScatterMatrix** appeared very small (8px cells in 2x2 grid)
+4. **BarCode** looked like dotted paper (90 tiny bars scattered randomly)
+
+### Root Cause Analysis
+
+| Style | Issue | Root Cause |
+|-------|-------|------------|
+| GeometricGrid | Offset positioning | No `manualMode` check; used grid-based positioning without centered coordinate transformation |
+| VoronoiCells | Offset + scattered | Drew 30 tiny Voronois (one per data point) instead of one cohesive Voronoi |
+| ScatterMatrix | Tiny 8px cells | `cellSize = MAX_SIZE * 0.5 * 0.08 = 8px`; drew many tiny matrices instead of one cohesive |
+| BarCode | Dotted paper effect | Drew 30 mini-barcodes at scattered positions with ~3 bars each |
+
+### Solution Applied
+
+| Style | Fix | Pattern |
+|-------|-----|---------|
+| GeometricGrid | Added `manualMode` check; use `(normX - 0.5) * width` for centered coordinates | Like particleField |
+| VoronoiCells | Collect all points, draw ONE cohesive Voronoi diagram | Single render pass |
+| ScatterMatrix | Draw ONE cohesive matrix with 50px cells, 4-8 columns | `_drawManualMatrix()` |
+| BarCode | Draw ONE horizontal bar code across canvas center | `_drawManualBarCode()` |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/canvas/styles/geometricGrid.js` | Added `isManualMode` check; `cx = (normX - 0.5) * width` for centered positioning |
+| `src/canvas/styles/voronoiCells.js` | Collect all points, single `_drawVoronoiFromPoints()` call in manual mode |
+| `src/canvas/styles/scatterMatrix.js` | Added `_drawManualMatrix()` with 50px cells, 4-8 columns |
+| `src/canvas/styles/barCode.js` | Added `_drawManualBarCode()` drawing horizontal bar code across center |
+
+### Assumptions Surfaced
+1. Manual mode data points have x,y in range [0,1] centered around 0.5
+2. Art styles should draw one cohesive visualization in manual mode, not scatter multiple mini-visualizations
+3. Cell sizes should be visually meaningful (20-50px) not tiny (8px)
+4. Bar code should look like traditional linear barcode, not scattered elements
+
+### Verification Checklist
+- [ ] GeometricGrid renders centered on canvas in Manual mode
+- [ ] VoronoiCells renders as one cohesive polygonal diagram
+- [ ] ScatterMatrix renders as visible 4x4+ grid with 50px cells
+- [ ] BarCode renders as recognizable horizontal bar code pattern
+- [ ] All styles work correctly in both Manual and Data-Driven modes
+- [ ] No console errors after fixes
+
+---

@@ -132,14 +132,28 @@
       var maxCells = config.gridCols * config.gridRows;
       var renderCount = Math.min(total, maxCells);
 
+      // Manual mode: check renderingConfig.manualMode flag set by renderer
+      var isManualMode = renderingConfig && renderingConfig.manualMode;
+
       for (var i = 0; i < renderCount; i++) {
         var pt = dataPoints[i];
-        var col = i % config.gridCols;
-        var row = Math.floor(i / config.gridCols);
+        var col, row, cx, cy;
 
-        // Cell center
-        var cx = col * cellW + cellW / 2;
-        var cy = row * cellH + cellH / 2;
+        if (isManualMode) {
+          // In manual mode, use data point's x,y to determine grid position
+          // Data points have x,y in range [0,1], map to centered grid coordinates
+          var normX = pt.x !== null ? pt.x : (i % config.gridCols) / config.gridCols;
+          var normY = pt.y !== null ? pt.y : Math.floor(i / config.gridCols) / config.gridRows;
+          // Convert to centered canvas coordinates
+          cx = (normX - 0.5) * width;
+          cy = (normY - 0.5) * height;
+        } else {
+          // Data-driven mode: use sequential index for grid position
+          col = i % config.gridCols;
+          row = Math.floor(i / config.gridCols);
+          cx = col * cellW + cellW / 2;
+          cy = row * cellH + cellH / 2;
+        }
 
         // Available half-widths within padded cell
         var maxHW = (cellW / 2) - pad;

@@ -25,17 +25,10 @@
       var isManualMode = renderingConfig && renderingConfig.manualMode;
 
       if (isManualMode) {
-        // Draw bars for each data point (like particleField iterates all points)
-        for (var i = 0; i < dataPoints.length; i++) {
-          var p = dataPoints[i];
-          var barCount = Math.max(3, Math.floor(((p.size || 0.5) * MAX_SIZE) * 0.02));
-          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
-          var barX = (p.x - 0.5) * width;
-          var barY = (p.y - 0.5) * height;
-          this._drawBars(ctx, barX, barY, barCount,
-              ((p.size || 0.5) * MAX_SIZE) * 0.08, manualOpacity, (p.rotation || 0) % 180 === 0 ? 'vertical' : 'horizontal',
-              p.color || colors[i % colors.length], colors);
-        }
+        // Draw ONE cohesive horizontal bar code across canvas center
+        var barCount = Math.max(12, Math.min(30, dataPoints.length * 1.5));
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : 1;
+        this._drawManualBarCode(ctx, width, height, dataPoints, barCount, manualOpacity, colors, renderingConfig);
       } else if (dataPoints && dataPoints.length > 0) {
         // Data-driven: draw bars for each data point
         var barWidth = width / Math.min(dataPoints.length + 2, 20) * 0.8;
@@ -50,6 +43,32 @@
           ctx.fillRect(x, height - barHeight, barWidth, barHeight);
         }
       }
+    },
+    _drawManualBarCode: function(ctx, w, h, dataPoints, barCount, opacity, colors, renderingConfig) {
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      // Bar code parameters
+      var barWidth = w / (barCount * 1.5); // bars with spacing
+      var totalBarsWidth = barCount * barWidth * 0.7; // 70% fill ratio
+      // Position relative to transformed origin (0,0 = canvas center)
+      var startX = -totalBarsWidth / 2;
+      var barHeight = h * 0.6;
+      var startY = -barHeight / 2;
+
+      for (var i = 0; i < barCount; i++) {
+        // Use data points to determine bar properties
+        var pIndex = i % dataPoints.length;
+        var p = dataPoints[pIndex];
+        var barH = barHeight * (0.3 + (p.size || 0.5) * 0.7); // vary height based on size
+        var yOffset = (barHeight - barH) / 2;
+        var color = p.color !== null ? colors[Math.floor(p.color * (colors.length - 1))] : colors[i % colors.length];
+
+        ctx.fillStyle = color;
+        // Vary bar width slightly for authentic barcode look
+        var actualBarWidth = barWidth * (0.6 + (p.rotation || 0.5) * 0.4);
+        ctx.fillRect(startX + i * barWidth, startY + yOffset, actualBarWidth, barH);
+      }
+      ctx.restore();
     },
     _drawBars: function(ctx, x, y, count, maxHeight, opacity, direction, baseColor, colors) {
       ctx.save();
