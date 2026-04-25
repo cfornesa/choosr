@@ -115,13 +115,20 @@
       for (var i = 0; i < total; i++) {
         var pt = dataPoints[i];
 
-        // X position
+        // X and Y positions
         var normX = pt.x !== null ? pt.x : fallbackX(i, total);
-        var px = padX + normX * drawW;
-
-        // Y position
         var normY = pt.y !== null ? pt.y : fallbackY(i, total);
-        var py = padY + normY * drawH;
+        var px;
+        var py;
+        // Manual mode: origin is at canvas center after renderer transform
+        if (renderingConfig && renderingConfig.manualMode) {
+          px = (normX - 0.5) * drawW;
+          py = (normY - 0.5) * drawH;
+        } else {
+          // Data-driven mode: top-left origin with padding
+          px = padX + normX * drawW;
+          py = padY + normY * drawH;
+        }
 
         // Size
         var radius;

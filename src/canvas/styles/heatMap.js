@@ -26,7 +26,17 @@
         var p = dataPoints[0];
         // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        this._drawGradient(ctx, cx + p.x * width/2, cy + p.y * height/2, 
+        // Manual mode: canvas origin is at center after renderer transform
+        var gradX;
+        var gradY;
+        if (renderingConfig && renderingConfig.manualMode) {
+          gradX = (p.x - 0.5) * width;
+          gradY = (p.y - 0.5) * height;
+        } else {
+          gradX = cx + p.x * width/2;
+          gradY = cy + p.y * height/2;
+        }
+        this._drawGradient(ctx, gradX, gradY, 
             (p.size || MAX_SIZE) * 0.5, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
       } else if (dataPoints && dataPoints.length > 0) {
         // Create a density grid

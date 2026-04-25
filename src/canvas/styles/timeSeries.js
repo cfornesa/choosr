@@ -32,14 +32,34 @@
         var p = dataPoints[0];
         // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        this._drawParticleFlow(ctx, width, height, cx + p.x * width/2, cy + p.y * height/2,
+        // Manual mode: canvas origin is at center after renderer transform
+        var flowX;
+        var flowY;
+        if (renderingConfig && renderingConfig.manualMode) {
+          flowX = (p.x - 0.5) * width;
+          flowY = (p.y - 0.5) * height;
+        } else {
+          flowX = cx + p.x * width/2;
+          flowY = cy + p.y * height/2;
+        }
+        this._drawParticleFlow(ctx, width, height, flowX, flowY,
             (p.size || MAX_SIZE) * 0.05, elapsed, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
       } else {
         for (var i = 0; i < Math.min(dataPoints.length, 40); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
           var size = ((p.size || 0.5) * MAX_SIZE) * 0.05;
-          this._drawParticleFlow(ctx, width, height, cx + p.x * width/2, cy + p.y * height/2,
+          // Manual mode: canvas origin is at center after renderer transform
+          var flowX;
+          var flowY;
+          if (renderingConfig && renderingConfig.manualMode) {
+            flowX = (p.x - 0.5) * width;
+            flowY = (p.y - 0.5) * height;
+          } else {
+            flowX = cx + p.x * width/2;
+            flowY = cy + p.y * height/2;
+          }
+          this._drawParticleFlow(ctx, width, height, flowX, flowY,
               size, elapsed, p.opacity || 1, (p.rotation || 0) + (i * 15), colors[i % colors.length], colors);
         }
       }

@@ -633,6 +633,8 @@
     // Pass opacity via renderingConfig so art styles apply it (they manage their own ctx.globalAlpha)
     var renderConfig = Object.assign({}, renderingConfig || {});
     renderConfig.opacity = normOpacity;
+    // Flag for art styles to use centered coordinate system (origin is at canvas center after transform)
+    renderConfig.manualMode = true;
 
     switch(styleKey) {
       case 'particleField':

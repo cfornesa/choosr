@@ -24,7 +24,16 @@
 
       if (isManual && dataPoints[0].x !== undefined) {
         var p = dataPoints[0];
-        var px = cx + p.x * width/2, py = cy + p.y * height/2;
+        var px;
+        var py;
+        // Manual mode: canvas origin is at center after renderer transform
+        if (renderingConfig && renderingConfig.manualMode) {
+          px = (p.x - 0.5) * width;
+          py = (p.y - 0.5) * height;
+        } else {
+          px = cx + p.x * width/2;
+          py = cy + p.y * height/2;
+        }
         var radius = (p.size || MAX_SIZE) * 0.2;
         var count = Math.floor((p.size || MAX_SIZE) * 0.05) + 5;
         // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
@@ -35,9 +44,19 @@
         for (var i = 0; i < Math.min(dataPoints.length, 20); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
+          var ptX;
+          var ptY;
+          // Manual mode: canvas origin is at center after renderer transform
+          if (renderingConfig && renderingConfig.manualMode) {
+            ptX = (p.x - 0.5) * width;
+            ptY = (p.y - 0.5) * height;
+          } else {
+            ptX = cx + p.x * width/2;
+            ptY = cy + p.y * height/2;
+          }
           points.push({
-            x: cx + p.x * width/2,
-            y: cy + p.y * height/2,
+            x: ptX,
+            y: ptY,
             color: colors[i % colors.length]
           });
         }

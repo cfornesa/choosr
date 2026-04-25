@@ -32,7 +32,16 @@
 
       if (isManual && dataPoints[0].x !== undefined) {
         var p = dataPoints[0];
-        px = cx + p.x * width/2, py = cy + p.y * height/2;
+        var px;
+        var py;
+        // Manual mode: canvas origin is at center after renderer transform
+        if (renderingConfig && renderingConfig.manualMode) {
+          px = (p.x - 0.5) * width;
+          py = (p.y - 0.5) * height;
+        } else {
+          px = cx + p.x * width/2;
+          py = cy + p.y * height/2;
+        }
         var scale = (p.size || MAX_SIZE) * 0.01;
         // Use renderingConfig.opacity if available (from canvas-level visual dimensions)
         var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
@@ -41,7 +50,16 @@
         for (var i = 0; i < Math.min(dataPoints.length, 50); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
-          var px = cx + p.x * width/2, py = cy + p.y * height/2;
+          var px;
+          var py;
+          // Manual mode: canvas origin is at center after renderer transform
+          if (renderingConfig && renderingConfig.manualMode) {
+            px = (p.x - 0.5) * width;
+            py = (p.y - 0.5) * height;
+          } else {
+            px = cx + p.x * width/2;
+            py = cy + p.y * height/2;
+          }
           var scale = ((p.size || 0.5) * MAX_SIZE) * 0.01 * (p.size || 0.5);
           this._drawFlow(ctx, px, py, width, height, scale, p.opacity || 1, (p.rotation || 0), colors[i % colors.length], colors);
         }

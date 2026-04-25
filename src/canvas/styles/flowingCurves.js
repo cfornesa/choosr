@@ -121,16 +121,17 @@
 
           // X position: evenly spaced across canvas width
           var normX = pointsPerCurve <= 1 ? 0.5 : p / (pointsPerCurve - 1);
-          var px = padX + normX * drawW;
-
-          // Y position: from data.y or fallback
-          var normY;
-          if (pt.y !== null) {
-            normY = pt.y;
+          var px;
+          var py;
+          // Manual mode: origin is at canvas center after renderer transform
+          if (renderingConfig && renderingConfig.manualMode) {
+            px = (normX - 0.5) * drawW;
+            py = ((pt.y !== null ? pt.y : fallbackY(c, p, curveCount, config.smoothing)) - 0.5) * drawH;
           } else {
-            normY = fallbackY(c, p, curveCount, config.smoothing);
+            // Data-driven mode: top-left origin with padding
+            px = padX + normX * drawW;
+            py = padY + (pt.y !== null ? pt.y : fallbackY(c, p, curveCount, config.smoothing)) * drawH;
           }
-          var py = padY + normY * drawH;
 
           controlPoints.push({ x: px, y: py });
         }

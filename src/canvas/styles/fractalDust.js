@@ -44,8 +44,16 @@
       if (isManualMode && dataPoints[0].x !== undefined && dataPoints[0].y !== undefined) {
         // Manual mode: use explicit dimensions
         var p = dataPoints[0];
-        var px = centerX + (p.x * width / 2);
-        var py = centerY + (p.y * height / 2);
+        var px;
+        var py;
+        // Manual mode: canvas origin is at center after renderer transform
+        if (renderingConfig && renderingConfig.manualMode) {
+          px = (p.x - 0.5) * width;
+          py = (p.y - 0.5) * height;
+        } else {
+          px = centerX + (p.x * width / 2);
+          py = centerY + (p.y * height / 2);
+        }
         var size = (p.size || MAX_SIZE) * 0.1;
         // Use renderingConfig.opacity if available (from canvas-level visual dimensions)
         var opacity = (renderingConfig && renderingConfig.opacity !== undefined) 
@@ -60,8 +68,16 @@
         for (var i = 0; i < Math.min(dataPoints.length, 100); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
-          var px = centerX + (p.x * width / 2);
-          var py = centerY + (p.y * height / 2);
+          var px;
+          var py;
+          // Manual mode: canvas origin is at center after renderer transform
+          if (renderingConfig && renderingConfig.manualMode) {
+            px = (p.x - 0.5) * width;
+            py = (p.y - 0.5) * height;
+          } else {
+            px = centerX + (p.x * width / 2);
+            py = centerY + (p.y * height / 2);
+          }
           var size = ((p.size || 0.5) * MAX_SIZE) * 0.1;
           var opacity = p.opacity || 1;
           var rotation = (p.rotation || 0) * Math.PI / 180;

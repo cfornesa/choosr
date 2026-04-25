@@ -1215,3 +1215,149 @@ None — no new constraints identified; all changes maintain existing constraint
 ### MEMORY.md Entry (added via evaluation)
 2026-04-25 · ARCHITECTURE · Canvas-level opacity must be explicitly passed via renderingConfig.opacity to art styles — each style manages its own ctx.globalAlpha independently via ctx.save()/restore() per-element, which isolates any canvas-level globalAlpha set before the rendering loop.
 
+---
+
+## Session 29 — Center Art Piece by Default (2026-04-25)
+
+**Problem:** User reports art piece is not centered by default in Manual Dimension mode. X/Y Position sliders default to 0, but user expectation is that 0 should mean "centered" and it currently doesn't feel that way.
+
+### Problem Analysis
+
+| Question | Finding |
+|----------|---------|
+| Are defaults x:0, y:0? | YES — visualDimensions.js _values defaults (lines 60-66), controls.js _currentVisualDimensions (lines 200-202), triggerRender() fallback (lines 355, 371) |
+| Does math produce center? | YES — normX=((0)+1)/2=0.5, translateX=(0.5-0.5)*W=0, canvas at W/2+0=W/2 (center) |
+| Is renderer correct? | YES — renderUsingExplicitDimensions (renderer.js:598-629) correctly interprets x=0,y=0 as centered |
+| Is grid generation correct? | YES — grid points centered at (0.5,0.5), canvas transform then shifts entire canvas to center |
+| Is there a bug? | NOT mathematically — implementation is correct. Issue is UX/perception. |
+
+### Root Cause
+The defaults ARE mathematically centered. The problem is **user perception**: when a user slides X from -1 to 1 and Y from -1 to 1, they may not intuitively understand that 0 means "center." The grid spread (±0.3) combined with canvas centering mathematically produces centered output, but users want an explicit "center" action.
+
+### Solution
+Add an explicit "Center Position" button to the VisualDimensions panel that sets X=0, Y=0 while preserving other dimension values (size, opacity, rotation). This gives users:
+1. A clear, intentional way to center the artwork
+2. An obvious affordance that "center" exists as a concept
+3. Ability to center without losing other settings
+
+### Files Modified
+- `src/controls/visualDimensions.js`: Added `center()` method and "Center Position" button in _buildUI()
+
+### Implementation Details
+
+**Added `center()` method** (after `reset()`):
+```javascript
+center: function() {
+  var current = this.getValues();
+  this.setValues({
+    x: 0,
+    y: 0,
+    size: current.size,
+    opacity: current.opacity,
+    rotation: current.rotation
+  });
+}
+```
+
+**Added "Center Position" button** (after Randomize button):
+```javascript
+var centerBtn = document.createElement('button');
+centerBtn.type = 'button';
+centerBtn.textContent = 'Center Position';
+centerBtn.addEventListener('click', function() {
+  VisualDimensions.center();
+});
+```
+
+### Verification
+1. Load studio.php → Visual Dimensions panel shows X=0, Y=0 by default
+2. Click "Center Position" → X and Y remain at 0 (already centered)
+3. Move X/Y sliders away from 0 → artwork shifts
+4. Click "Center Position" → artwork returns to center, other dimensions unchanged
+5. Click "Randomize" → X/Y change to random values, artwork shifts
+6. Click "Center Position" → X/Y return to 0, artwork centered
+
+### Assumptions Surfaced
+1. Defaults are mathematically correct (x=0 → centered output)
+2. Issue is user perception/UX, not implementation bug
+3. "Center Position" button is useful even though reset() also sets x=0,y=0
+4. Users may want to center without resetting size/opacity/rotation
+
+### DECISIONS.md Entry
+Added Session 29 entry documenting the centering investigation and solution.
+
+### MEMORY.md Entry
+2026-04-25 · UX · "Center Position" button added to VisualDimensions panel to give users an explicit, discoverable way to center artwork. Mathematically the defaults (x=0,y=0) already produce centered output, but users need an obvious affordance to understand and act on the centering concept.
+
+---
+
+## Session 30 — Canvas Centering and Rotation Origin Fix (2026-04-25)
+
+**Problem:** Artwork appears in lower-right quadrant instead of centered, and rotation feels wrong because it rotates around an "invisible center" rather than the artwork's visual center.
+
+### Root Cause Analysis
+
+| Layer | What Happens | Effect |
+|-------|--------------|--------|
+| Renderer | `ctx.translate(cssWidth/2, cssHeight/2)` | Origin moved to canvas center |
+| Renderer | Data points at x=0.5 (centered) | Points should be at origin |
+| Art Style | `px = padX + normX * drawW` | At normX=0.5: px=padX+0.5*drawW≈center of canvas |
+| Result | Drawing at px relative to translated origin | Artwork at center+offset = lower-right |
+
+The renderer applies `ctx.translate(cssWidth/2, cssHeight/2)` to move origin to canvas center, but art styles still calculate positions as if origin is at top-left (`px = padX + normX * drawW`). This causes the artwork to be drawn at `canvas_center + offset` = lower-right.
+
+**Why Rotation Feels Wrong:** Rotation happens around the canvas center (the transformed origin), but the data cluster is offset from that point, so it rotates around an "invisible center" rather than the artwork's own center.
+
+### Solution
+
+Passed `manualMode: true` flag via `renderConfig` to all 13 art styles, and updated them to use centered coordinate calculation when in manual mode:
+
+```javascript
+// OLD (data-driven):
+var px = padX + normX * drawW;
+
+// NEW (manual mode):
+var px = (normX - 0.5) * drawW;  // Center at origin
+```
+
+This makes x=0.5 map to px=0 (the origin/canvas center after transform).
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/canvas/renderer.js` | Added `renderConfig.manualMode = true;` |
+| `src/canvas/styles/particleField.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/flowingCurves.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/fractalDust.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/neuralFlow.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/pixelMosaic.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/radialSymmetry.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/radialWave.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/heatMap.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/barCode.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/voronoiCells.js` | Centered coordinate calculation when manualMode |
+| `src/canvas/styles/timeSeries.js` | Centered coordinate calculation when manualMode |
+
+### Not Modified
+
+| File | Reason |
+|------|--------|
+| `src/canvas/styles/geometricGrid.js` | Uses fixed grid layout from index, not normX/normY positioning |
+| `src/canvas/styles/scatterMatrix.js` | Uses fixed grid layout from index, not normX/normY positioning |
+
+### Assumption Surfaced
+
+1. The coordinate fix applies to styles using `padX + normX * drawW` or `cx + p.x * width/2` patterns — grid-based styles (geometricGrid, scatterMatrix) are unaffected
+2. Data points are generated at x=0.5-centered range (0.2-0.8) — the fix maps this correctly to centered output
+3. Rotation now rotates around the artwork's visual center because coordinates are centered at origin (canvas center after transform)
+
+### Verification Criteria
+
+1. When studio.php loads in Manual mode, artwork is centered on canvas
+2. X=0, Y=0 positions artwork at exact center
+3. Rotation rotates artwork around its visual center
+4. Randomize generates varied positions, Reset returns to center
+5. All 13 art styles render centered correctly
+6. Data-Driven mode continues to work as before
+

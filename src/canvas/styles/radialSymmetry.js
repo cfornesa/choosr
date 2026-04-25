@@ -26,7 +26,17 @@
         var p = dataPoints[0];
         // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        this._drawSymmetry(ctx, cx, cy, (p.size || MAX_SIZE) * 0.3, 
+        // Manual mode: canvas origin is at center after renderer transform
+        var symX;
+        var symY;
+        if (renderingConfig && renderingConfig.manualMode) {
+          symX = (p.x - 0.5) * width;
+          symY = (p.y - 0.5) * height;
+        } else {
+          symX = cx + p.x * width/2;
+          symY = cy + p.y * height/2;
+        }
+        this._drawSymmetry(ctx, symX, symY, (p.size || MAX_SIZE) * 0.3, 
             p.rotation || 0, Math.max(3, Math.floor(p.size * 0.02)) || 6, 
             manualOpacity, p.color || colors[0], colors);
       } else {

@@ -87,8 +87,16 @@
       if (isManualMode && dataPoints[0].x !== undefined && dataPoints[0].y !== undefined) {
         // Manual mode: use explicit dimensions for single wave source
         var point = dataPoints[0];
-        var waveX = centerX + (point.x * width / 2);
-        var waveY = centerY + (point.y * height / 2);
+        var waveX;
+        var waveY;
+        // Manual mode: canvas origin is at center after renderer transform
+        if (renderingConfig && renderingConfig.manualMode) {
+          waveX = (point.x - 0.5) * width;
+          waveY = (point.y - 0.5) * height;
+        } else {
+          waveX = centerX + (point.x * width / 2);
+          waveY = centerY + (point.y * height / 2);
+        }
         var amplitude = (point.size || 0) * maxRadius * 0.5;
         // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (point.opacity || 1);
@@ -120,8 +128,16 @@
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
 
-          var px = centerX + (p.x * width / 2);
-          var py = centerY + (p.y * height / 2);
+          var px;
+          var py;
+          // Manual mode: canvas origin is at center after renderer transform
+          if (renderingConfig && renderingConfig.manualMode) {
+            px = (p.x - 0.5) * width;
+            py = (p.y - 0.5) * height;
+          } else {
+            px = centerX + (p.x * width / 2);
+            py = centerY + (p.y * height / 2);
+          }
           var size = p.size || 0.5;
           var amplitude = size * maxRadius * 0.3;
           var opacity = (p.opacity !== null && p.opacity !== undefined) ? p.opacity : 1;

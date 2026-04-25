@@ -27,7 +27,17 @@
         var barCount = Math.max(3, Math.floor((p.size || MAX_SIZE) * 0.05));
         // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        this._drawBars(ctx, cx + p.x * width/2, cy + p.y * height/2, barCount, 
+        // Manual mode: canvas origin is at center after renderer transform
+        var barX;
+        var barY;
+        if (renderingConfig && renderingConfig.manualMode) {
+          barX = (p.x - 0.5) * width;
+          barY = (p.y - 0.5) * height;
+        } else {
+          barX = cx + p.x * width/2;
+          barY = cy + p.y * height/2;
+        }
+        this._drawBars(ctx, barX, barY, barCount, 
             (p.size || MAX_SIZE) * 0.2, manualOpacity, (p.rotation || 0) % 180 === 0 ? 'vertical' : 'horizontal',
             p.color || colors[0], colors);
       } else if (dataPoints && dataPoints.length > 0) {

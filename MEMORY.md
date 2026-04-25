@@ -346,3 +346,23 @@
     renderingConfig.opacity !== undefined → use canvas opacity).
     Durable: All 13 art styles required the same opacity pattern fix to work
     correctly in Manual mode. Pattern must be documented when adding new styles.
+
+2026-04-25 · UX · "Center Position" button added to VisualDimensions panel to
+    give users an explicit, discoverable way to center artwork. Mathematically
+    the defaults (x=0,y=0) already produce centered output, but users need an
+    obvious affordance to understand and act on the centering concept.
+    Durable: Users interpret slider position 0 as "zero offset" not "center"
+    unless explicitly labeled or actioned. Explicit centering UI improves
+    discoverability of the centering concept.
+
+2026-04-25 · ARCHITECTURE · Manual mode art centering requires art styles to
+    use origin-centered coordinates (`(normX - 0.5) * drawW`) instead of
+    top-left-origin coordinates (`padX + normX * drawW`) when
+    `renderingConfig.manualMode === true`. The renderer passes this flag via
+    `renderConfig.manualMode = true` to inform styles that the canvas origin
+    has been moved to center via `ctx.translate()`. This ensures artwork appears
+    centered and rotation happens around the artwork's visual center.
+    Durable: All 13 art styles must handle the manualMode flag consistently;
+    styles using `cx + p.x * width/2` pattern also need adjustment to
+    `(p.x - 0.5) * width` for manual mode. Grid-based styles (geometricGrid,
+    scatterMatrix) that use fixed index-based positioning are unaffected.

@@ -245,6 +245,20 @@
         opacity: 1,
         rotation: 0
       });
+    },
+
+    /**
+     * Center the artwork position only (X/Y) without affecting other dimensions
+     */
+    center: function() {
+      var current = this.getValues();
+      this.setValues({
+        x: 0,
+        y: 0,
+        size: current.size,
+        opacity: current.opacity,
+        rotation: current.rotation
+      });
     }
   };
 
@@ -348,6 +362,16 @@
       VisualDimensions.randomize();
     });
     _containerEl.appendChild(randomBtn);
+
+    // Center position button
+    var centerBtn = document.createElement('button');
+    centerBtn.type = 'button';
+    centerBtn.textContent = 'Center Position';
+    applyStyles(centerBtn, STYLES.button);
+    centerBtn.addEventListener('click', function() {
+      VisualDimensions.center();
+    });
+    _containerEl.appendChild(centerBtn);
 
     log('UI built with dimensions:', DIMENSIONS);
   }
