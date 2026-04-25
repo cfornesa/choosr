@@ -156,9 +156,11 @@
           lineWidth = config.defaultWeight;
         }
 
-        // Opacity
+        // Opacity: use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var alpha;
-        if (firstPt.opacity !== null) {
+        if (renderingConfig && renderingConfig.opacity !== undefined) {
+          alpha = renderingConfig.opacity;
+        } else if (firstPt.opacity !== null) {
           alpha = Math.max(0, Math.min(1, firstPt.opacity));
         } else {
           alpha = config.defaultOpacity;

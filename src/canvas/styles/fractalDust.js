@@ -47,7 +47,10 @@
         var px = centerX + (p.x * width / 2);
         var py = centerY + (p.y * height / 2);
         var size = (p.size || MAX_SIZE) * 0.1;
-        var opacity = p.opacity || 1;
+        // Use renderingConfig.opacity if available (from canvas-level visual dimensions)
+        var opacity = (renderingConfig && renderingConfig.opacity !== undefined) 
+            ? renderingConfig.opacity 
+            : (p.opacity !== null ? p.opacity : 1);
         var rotation = (p.rotation || 0) * Math.PI / 180;
         var color = p.color || colors[0];
 

@@ -27,7 +27,9 @@
         var px = cx + p.x * width/2, py = cy + p.y * height/2;
         var radius = (p.size || MAX_SIZE) * 0.2;
         var count = Math.floor((p.size || MAX_SIZE) * 0.05) + 5;
-        this._drawVoronoi(ctx, width, height, px, py, radius, count, p.opacity || 1, p.color || colors[0], colors);
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
+        this._drawVoronoi(ctx, width, height, px, py, radius, count, manualOpacity, p.color || colors[0], colors);
       } else {
         var points = [];
         for (var i = 0; i < Math.min(dataPoints.length, 20); i++) {

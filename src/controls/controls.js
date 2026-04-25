@@ -235,12 +235,14 @@
       );
 
       // Initialize VisualDimensions
-      if (window.DataToArt.VisualDimensions) {
+      if (window.DataToArt && window.DataToArt.VisualDimensions) {
         window.DataToArt.VisualDimensions.init(
           _visualContainer,
           _onVisualDimensionsChange,
           500  // default maxSize
         );
+      } else {
+        warn('window.DataToArt.VisualDimensions not found');
       }
 
       // Set up debounced render trigger
@@ -335,9 +337,9 @@
     },
 
     /**
-     * Trigger an immediate render with current state.
-     * Called by the debounced wrapper after the timeout.
-     */
+    * Trigger an immediate render with current state.
+    * Called by the debounced wrapper after the timeout.
+    */
     triggerRender: function() {
       if (!_renderer) {
         warn('triggerRender() — renderer not initialized');

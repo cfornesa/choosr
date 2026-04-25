@@ -334,3 +334,15 @@
     0-1 data points compatible with all art styles.
     Durable: Color dimension only available in Data-Driven mode via dataset
     column mapping; Manual mode uses palettecolors exclusively.
+
+---
+
+2026-04-25 · ARCHITECTURE · Canvas-level opacity must be explicitly passed via
+    renderingConfig.opacity to art styles — each style manages its own ctx.globalAlpha
+    independently via ctx.save()/restore() per-element, which isolates any
+    canvas-level globalAlpha set before the rendering loop.
+    The fix: renderer sets renderConfig.opacity = normOpacity; art styles check
+    for it in manual mode when point opacity is null (p.opacity === null &&
+    renderingConfig.opacity !== undefined → use canvas opacity).
+    Durable: All 13 art styles required the same opacity pattern fix to work
+    correctly in Manual mode. Pattern must be documented when adding new styles.

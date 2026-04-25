@@ -167,9 +167,11 @@
           color = colors[i % colors.length];
         }
 
-        // Opacity
+        // Opacity: use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
         var alpha;
-        if (pt.opacity !== null) {
+        if (renderingConfig && renderingConfig.opacity !== undefined) {
+          alpha = renderingConfig.opacity;
+        } else if (pt.opacity !== null) {
           alpha = Math.max(0, Math.min(1, pt.opacity));
         } else {
           alpha = config.defaultOpacity;

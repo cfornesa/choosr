@@ -54,6 +54,7 @@
   var _saveArtworkBtn;
   var _loadArtworkBtn;
   var _newArtworkBtn;
+  var _deleteArtworkBtn;
   var _errorDisplay;
   var _authStatus;
   var _emptyState;
@@ -71,6 +72,7 @@
   var _currentArtworkIdInput;
   var _saveMetadataBtn;
   var _saveMetadataStatus;
+  var _metadataDeleteBtn;
 
   // ─── CSS Class Names ──────────────────────────────────────────────────
 
@@ -571,6 +573,8 @@
     if (_artworkIsFeaturedInput) _artworkIsFeaturedInput.checked = false;
     if (_currentArtworkIdInput) _currentArtworkIdInput.value = '';
     _currentArtworkId = null;
+    // Update delete button visibility
+    _updateDeleteButtonVisibility();
     // Reset Controls to clear any loaded artwork state
     // window.DataToArt.Controls.reset();
   }
@@ -706,6 +710,8 @@
           _currentArtworkIdInput.value = data.artwork_id;
         }
         log('Artwork saved with ID:', data.artwork_id);
+        // Update delete button visibility since we now have a saved artwork
+        _updateDeleteButtonVisibility();
       } else {
         _showError(data.error || 'Failed to save artwork');
       }
@@ -733,6 +739,53 @@
     })
     .catch(function(err) {
       _showError(err.message || 'Failed to load artwork list');
+    });
+  }
+
+  /**
+   * Show or hide the delete artwork buttons.
+   * The main delete button in the button row and the metadata panel button
+   * are shown only when an artwork is loaded (_currentArtworkId is set).
+   */
+  function _updateDeleteButtonVisibility() {
+    var hasArtwork = !!_currentArtworkId;
+    if (_deleteArtworkBtn) {
+      _deleteArtworkBtn.style.display = hasArtwork ? '' : 'none';
+    }
+    if (_metadataDeleteBtn) {
+      _metadataDeleteBtn.style.display = hasArtwork ? '' : 'none';
+    }
+  }
+
+  /**
+   * Delete the currently loaded artwork after user confirmation.
+   */
+  function _onDeleteArtworkClick() {
+    if (!_currentArtworkId) {
+      _showError('No artwork loaded — nothing to delete');
+      return;
+    }
+
+    var title = _artworkTitleInput ? _artworkTitleInput.value.trim() : 'this artwork';
+    if (!confirm('Are you sure you want to delete "' + title + '"? This cannot be undone.')) {
+      return;
+    }
+
+    log('Deleting artwork ID:', _currentArtworkId);
+
+    fetch('api/artwork.php?id=' + encodeURIComponent(_currentArtworkId), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(handleResponse)
+    .then(function(data) {
+      log('Artwork deleted:', data);
+      _showStatus('Artwork deleted');
+      _clearArtworkMetadata();
+      _updateDeleteButtonVisibility();
+    })
+    .catch(function(err) {
+      _showError(err.message || 'Failed to delete artwork');
     });
   }
 
@@ -897,6 +950,7 @@
 
         _showStatus('Loaded artwork: ' + artwork.title);
         _hideEmptyState();
+        _updateDeleteButtonVisibility();
       }
     })
     .catch(function(err) {
@@ -919,6 +973,8 @@
     _exportBtn     = document.getElementById('dta-export-btn');
     _saveArtworkBtn = document.getElementById('dta-save-artwork-btn');
     _loadArtworkBtn = document.getElementById('dta-load-artwork-btn');
+    _newArtworkBtn = document.getElementById('dta-new-artwork-btn');
+    _deleteArtworkBtn = document.getElementById('dta-delete-artwork-btn');
     _errorDisplay  = document.getElementById('dta-error-display');
     _authStatus    = document.getElementById('dta-auth-status');
     _emptyState    = document.getElementById('dta-empty-state');
@@ -936,6 +992,7 @@
     _currentArtworkIdInput    = document.getElementById('dta-current-artwork-id');
     _saveMetadataBtn         = document.getElementById('dta-save-metadata-btn');
     _saveMetadataStatus      = document.getElementById('dta-save-status');
+    _metadataDeleteBtn       = document.getElementById('dta-delete-artwork-btn');
 
     // Populate auth state from PHP-rendered attributes on sidebar
     // studio.php: data-authenticated="1" and data-username="..."
@@ -1102,6 +1159,11 @@
     // Load Artwork button (shows list of existing artworks)
     if (_loadArtworkBtn) {
       _loadArtworkBtn.addEventListener('click', _onLoadArtworkClick);
+    }
+
+    // Delete Artwork button
+    if (_deleteArtworkBtn) {
+      _deleteArtworkBtn.addEventListener('click', _onDeleteArtworkClick);
     }
 
     // Fetch initial dataset list

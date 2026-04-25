@@ -594,23 +594,46 @@
     var bg = (paletteConfig && paletteConfig.background) || DEFAULT_BACKGROUND;
     
     // Normalize explicit dimensions to 0-1 range to match data-driven mode format
-    // This ensures art styles interpret the values consistently
     // Note: Manual mode uses palette colors only (no explicit color dimension)
     var normX = ((explicitDimensions.x || 0) + 1) / 2;  // -1..1 -> 0..1
     var normY = ((explicitDimensions.y || 0) + 1) / 2;  // -1..1 -> 0..1
     var normSize = (explicitDimensions.size || 100) / 500;  // 0..500 -> 0..1
     var normOpacity = explicitDimensions.opacity !== undefined ? explicitDimensions.opacity : 1;  // already 0..1
     var normRotation = (explicitDimensions.rotation || 0) / 360;  // 0..360 -> 0..1
-    
+
     // Use palette colors only for Manual mode data points
     var modifiedPalette = paletteConfig || {};
     if (!modifiedPalette.colors) {
       modifiedPalette.colors = colors;
     }
-    
+
     // Use a reasonable default set of data points based on the style
     var numPoints = 30;  // Default number of points
-    
+
+    // Save context and apply canvas-level transformations for visual dimensions
+    // This applies transforms uniformly across ALL art styles
+    this.ctx.save();
+
+    // Calculate canvas center offset from explicit dimensions
+    // normX/normY of 0.5 = center (no shift), lower/higher shifts artwork
+    var translateX = (normX - 0.5) * cssWidth;
+    var translateY = (normY - 0.5) * cssHeight;
+
+    // Scale factor: 0..1 maps to 0.5..2.0, with default size=100 mapping to ~1.0
+    var scaleFactor = 0.5 + normSize * 1.5;  // 0.5 to 2.0
+
+    // Rotation in radians
+    var rotationRad = normRotation * Math.PI * 2;
+
+    // Apply transformations in correct order: translate -> rotate -> scale
+    this.ctx.translate(cssWidth / 2 + translateX, cssHeight / 2 + translateY);
+    this.ctx.rotate(rotationRad);
+    this.ctx.scale(scaleFactor, scaleFactor);
+
+    // Pass opacity via renderingConfig so art styles apply it (they manage their own ctx.globalAlpha)
+    var renderConfig = Object.assign({}, renderingConfig || {});
+    renderConfig.opacity = normOpacity;
+
     switch(styleKey) {
       case 'particleField':
       case 'geometricGrid':
@@ -623,95 +646,89 @@
       case 'heatMap':
       case 'scatterMatrix':
       case 'barCode':
-        // Generate a grid of points distributed across the canvas
-        // Center grid around normalized explicit position (0..1)
-        // Grid spread is limited to keep points visible within canvas
+        // Generate a grid of points centered at (0.5, 0.5)
+        // Canvas transforms now handle position/size/rotation/opacity
         var cols = Math.ceil(Math.sqrt(numPoints));
         var rows = Math.ceil(numPoints / cols);
-        
+
         for (var i = 0; i < numPoints; i++) {
           var col = i % cols;
           var row = Math.floor(i / cols);
-          
-          // Calculate grid position relative to center point
-          // col/(cols-1) gives 0..1. Subtract 0.5 to center around 0, then scale
-          // This keeps the grid tight around the center point
+
+          // Calculate grid position centered at 0.5, 0.5
           var gridX = (col / (cols - 1 || 1)) - 0.5;  // -0.5 to 0.5
           var gridY = (row / (rows - 1 || 1)) - 0.5;  // -0.5 to 0.5
-          
-          // Apply normalized explicit dimensions as center point
-          // normX and normY are 0..1, gridX/gridY spread around it
-          var x = normX + gridX * 0.6;  // 0.6 = spread factor (keep within -0.3 to 1.3 range)
-          var y = normY + gridY * 0.6;
-          
-          // Apply size from explicit dimensions
-          var pointSize = normSize;
-          // Color: use null to let art styles apply their own palette logic
-          // (most styles use colors[i % colors.length] when pt.color is null)
-          
+
+          // Data points centered around (0.5, 0.5) - transforms handle position
+          var x = 0.5 + gridX * 0.6;
+          var y = 0.5 + gridY * 0.6;
+
+          // Size: base size for data points (transforms handle scaling)
+          var pointSize = 0.5;  // neutral size, canvas scale handles overall size
+
           dataPoints.push({
             x: x,
             y: y,
             size: pointSize,
             color: null,
-            opacity: normOpacity,
-            rotation: normRotation
+            opacity: null,  // null signals "use renderingConfig.opacity" in art styles
+            rotation: 0  // canvas rotation handles rotation
           });
         }
         break;
-        
+
       case 'voronoiCells':
         // Voronoi needs scattered points for cells
         for (var i = 0; i < numPoints; i++) {
-          // Generate random spread around center point
-          var gridX = (Math.random() - 0.5) * 0.8;  // -0.4 to 0.4
-          var gridY = (Math.random() - 0.5) * 0.8;  // -0.4 to 0.4
+          // Generate random spread centered around (0.5, 0.5)
+          var gridX = (Math.random() - 0.5) * 0.8;
+          var gridY = (Math.random() - 0.5) * 0.8;
           dataPoints.push({
-            x: normX + gridX,
-            y: normY + gridY,
-            size: normSize,
+            x: 0.5 + gridX,
+            y: 0.5 + gridY,
+            size: 0.5,
             color: null,
-            opacity: normOpacity,
-            rotation: normRotation
+            opacity: null,
+            rotation: 0
           });
         }
         modifiedPalette.colors = modifiedPalette.colors || colors;
         break;
-        
+
       case 'timeSeries':
         // Time series needs sequential data
         for (var i = 0; i < numPoints; i++) {
           var t = i / (numPoints - 1 || 1);  // 0..1
-          // Spread along X axis, oscillate on Y
+          // Spread along X axis, oscillate on Y, centered at (0.5, 0.5)
           dataPoints.push({
-            x: normX + (t - 0.5) * 0.8,  // -0.4 to 0.4 spread around center
-            y: normY + Math.sin(t * Math.PI * 2) * 0.2,  // oscillate ±0.2
-            size: normSize,
+            x: 0.5 + (t - 0.5) * 0.8,
+            y: 0.5 + Math.sin(t * Math.PI * 2) * 0.2,
+            size: 0.5,
             color: null,
-            opacity: normOpacity,
-            rotation: normRotation
+            opacity: null,
+            rotation: 0
           });
         }
         break;
-        
+
       default:
         // Fallback: create a centered grid of points
         var defaultCols = Math.max(1, Math.ceil(Math.sqrt(numPoints)));
         var defaultRows = Math.ceil(numPoints / defaultCols);
-        
+
         for (var i = 0; i < numPoints; i++) {
           var col = i % defaultCols;
           var row = Math.floor(i / defaultCols);
-          // Center around normX, normY
+          // Center around 0.5, 0.5
           var gridX = (col / (defaultCols - 1 || 1)) - 0.5;
           var gridY = (row / (defaultRows - 1 || 1)) - 0.5;
           dataPoints.push({
-            x: normX + gridX * 0.6,
-            y: normY + gridY * 0.6,
-            size: normSize,
+            x: 0.5 + gridX * 0.6,
+            y: 0.5 + gridY * 0.6,
+            size: 0.5,
             color: null,
-            opacity: normOpacity,
-            rotation: normRotation
+            opacity: null,
+            rotation: 0
           });
         }
     }
@@ -723,8 +740,11 @@
       cssHeight,
       dataPoints,
       modifiedPalette,
-      renderingConfig || {}
+      renderConfig
     );
+
+    // Restore context to remove transforms
+    this.ctx.restore();
 
     log('Rendered explicit dimensions for style:', styleKey);
   };

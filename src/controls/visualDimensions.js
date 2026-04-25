@@ -251,15 +251,12 @@
   // ─── UI Building ─────────────────────────────────────────────────────────
 
   function _buildUI() {
-    if (!_containerEl) return;
+    if (!_containerEl) {
+      return;
+    }
 
     // Clear container
     _containerEl.innerHTML = '';
-
-    // Apply container styles
-    applyStyles(_containerEl, STYLES.container);
-
-    // Create header
     var header = document.createElement('h3');
     header.textContent = 'Visual Dimensions';
     applyStyles(header, STYLES.header);
@@ -268,26 +265,27 @@
     // Create a control row for each dimension
     for (var d = 0; d < DIMENSIONS.length; d++) {
       var dimName = DIMENSIONS[d];
-      var range = DIMENSION_RANGES[dimName];
+      (function(pdimName) {
+        var range = DIMENSION_RANGES[pdimName];
 
       var row = document.createElement('div');
       applyStyles(row, STYLES.row);
 
       // Label
       var label = document.createElement('label');
-      label.textContent = DIMENSION_LABELS[dimName];
-      label.htmlFor = 'vd-' + dimName;
+      label.textContent = DIMENSION_LABELS[pdimName];
+      label.htmlFor = 'vd-' + pdimName;
       applyStyles(label, STYLES.label);
       row.appendChild(label);
 
       // Slider
       var slider = document.createElement('input');
       slider.type = 'range';
-      slider.id = 'vd-' + dimName;
+      slider.id = 'vd-' + pdimName;
       slider.min = range.min;
       slider.max = range.max;
       slider.step = range.step || 1;
-      slider.value = _values[dimName];
+      slider.value = _values[pdimName];
       applyStyles(slider, STYLES.slider);
 
       // Numeric value input
@@ -296,22 +294,23 @@
       valueInput.min = range.min;
       valueInput.max = range.max;
       valueInput.step = range.step || 1;
-      valueInput.value = _values[dimName];
+      valueInput.value = _values[pdimName];
       applyStyles(valueInput, STYLES.valueInput);
 
       // Sync slider and input
       var sync = function() {
         var val = parseFloat(slider.value);
-        if (dimName === 'size' || dimName === 'rotation') {
+        if (pdimName === 'size' || pdimName === 'rotation') {
           val = Math.round(val);
         } else {
           val = parseFloat(val.toFixed(2));
         }
         valueInput.value = val;
-        _values[dimName] = val;
+        _values[pdimName] = val;
         _fireChange();
       };
 
+      // Slider 'input' event fires continuously during drag
       slider.addEventListener('input', function() {
         valueInput.value = this.value;
         sync();
@@ -323,7 +322,7 @@
         if (val < range.min) val = range.min;
         if (val > range.max) val = range.max;
         slider.value = val;
-        _values[dimName] = val;
+        _values[pdimName] = val;
         _fireChange();
       });
 
@@ -331,13 +330,14 @@
       row.appendChild(valueInput);
 
       // Store references
-      _controls[dimName] = {
+      _controls[pdimName] = {
         slider: slider,
         valueInput: valueInput
       };
 
       _containerEl.appendChild(row);
-      }
+      })(dimName);  // Close IIFE properly with current dimName value
+    }  // End of for loop
 
     // Randomize button
     var randomBtn = document.createElement('button');

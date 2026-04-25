@@ -24,9 +24,11 @@
 
       if (isManual && dataPoints[0].x !== undefined) {
         var p = dataPoints[0];
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
         this._drawSymmetry(ctx, cx, cy, (p.size || MAX_SIZE) * 0.3, 
             p.rotation || 0, Math.max(3, Math.floor(p.size * 0.02)) || 6, 
-            p.opacity || 1, p.color || colors[0], colors);
+            manualOpacity, p.color || colors[0], colors);
       } else {
         for (var i = 0; i < Math.min(dataPoints.length, 10); i++) {
           var p = dataPoints[i];

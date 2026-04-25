@@ -96,6 +96,9 @@ if (!is_authenticated()) {
           <button id="dta-load-artwork-btn">Load Artwork</button>
           <button id="dta-new-artwork-btn">New Artwork</button>
         </div>
+        <div class="dta-button-row">
+          <button id="dta-delete-artwork-btn" class="dta-delete-artwork-btn">Delete Artwork</button>
+        </div>
 
         <!-- Mode Toggle -->
         <div class="dta-mode-toggle" style="margin-top: 16px; padding: 8px; background: #1a1a1a; border: 1px solid #2a2a2a;">

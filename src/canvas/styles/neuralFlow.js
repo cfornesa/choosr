@@ -34,7 +34,9 @@
         var p = dataPoints[0];
         px = cx + p.x * width/2, py = cy + p.y * height/2;
         var scale = (p.size || MAX_SIZE) * 0.01;
-        this._drawFlow(ctx, px, py, width, height, scale, p.opacity || 1, p.rotation || 0, p.color || colors[0], colors);
+        // Use renderingConfig.opacity if available (from canvas-level visual dimensions)
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
+        this._drawFlow(ctx, px, py, width, height, scale, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
       } else {
         for (var i = 0; i < Math.min(dataPoints.length, 50); i++) {
           var p = dataPoints[i];

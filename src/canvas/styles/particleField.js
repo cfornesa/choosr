@@ -141,13 +141,15 @@
           color = colors[i % colors.length];
         }
 
-        // Opacity
-        var alpha;
-        if (pt.opacity !== null) {
-          alpha = config.minOpacity + pt.opacity * opacityRange;
-        } else {
-          alpha = config.defaultOpacity;
-        }
+        // Opacity: use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+      var alpha;
+      if (renderingConfig && renderingConfig.opacity !== undefined) {
+        alpha = renderingConfig.opacity;
+      } else if (pt.opacity !== null) {
+        alpha = config.minOpacity + pt.opacity * opacityRange;
+      } else {
+        alpha = config.defaultOpacity;
+      }
 
         // Draw particle
         ctx.save();

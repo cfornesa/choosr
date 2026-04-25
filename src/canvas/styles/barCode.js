@@ -25,8 +25,10 @@
       if (isManual && dataPoints[0].x !== undefined) {
         var p = dataPoints[0];
         var barCount = Math.max(3, Math.floor((p.size || MAX_SIZE) * 0.05));
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
         this._drawBars(ctx, cx + p.x * width/2, cy + p.y * height/2, barCount, 
-            (p.size || MAX_SIZE) * 0.2, p.opacity || 1, (p.rotation || 0) % 180 === 0 ? 'vertical' : 'horizontal',
+            (p.size || MAX_SIZE) * 0.2, manualOpacity, (p.rotation || 0) % 180 === 0 ? 'vertical' : 'horizontal',
             p.color || colors[0], colors);
       } else if (dataPoints && dataPoints.length > 0) {
         // Data-driven: draw bars for each data point

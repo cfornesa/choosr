@@ -90,6 +90,8 @@
         var waveX = centerX + (point.x * width / 2);
         var waveY = centerY + (point.y * height / 2);
         var amplitude = (point.size || 0) * maxRadius * 0.5;
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (point.opacity || 1);
 
         // Draw concentric waves from the explicit position
         for (var w = 0; w < waveCount; w++) {
@@ -97,7 +99,7 @@
           var opacity = waveOpacity / (w + 1);
           var colorIndex = w % colors.length;
 
-          ctx.globalAlpha = opacity * (point.opacity || 1);
+          ctx.globalAlpha = opacity * manualOpacity;
           ctx.strokeStyle = colors[colorIndex];
           ctx.lineWidth = config.strokeWidth || DEFAULTS.strokeWidth + w * 0.5;
 

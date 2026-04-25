@@ -24,8 +24,10 @@
 
       if (isManual && dataPoints[0].x !== undefined) {
         var p = dataPoints[0];
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
         this._drawGradient(ctx, cx + p.x * width/2, cy + p.y * height/2, 
-            (p.size || MAX_SIZE) * 0.5, p.opacity || 1, p.rotation || 0, p.color || colors[0], colors);
+            (p.size || MAX_SIZE) * 0.5, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
       } else if (dataPoints && dataPoints.length > 0) {
         // Create a density grid
         var gridSize = 20;

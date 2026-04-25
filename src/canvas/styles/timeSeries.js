@@ -30,8 +30,10 @@
 
       if (isManual && dataPoints[0].x !== undefined) {
         var p = dataPoints[0];
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
         this._drawParticleFlow(ctx, width, height, cx + p.x * width/2, cy + p.y * height/2,
-            (p.size || MAX_SIZE) * 0.05, elapsed, p.opacity || 1, p.rotation || 0, p.color || colors[0], colors);
+            (p.size || MAX_SIZE) * 0.05, elapsed, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
       } else {
         for (var i = 0; i < Math.min(dataPoints.length, 40); i++) {
           var p = dataPoints[i];

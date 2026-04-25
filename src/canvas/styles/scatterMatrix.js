@@ -26,7 +26,9 @@
         var p = dataPoints[0];
         var cellSize = (p.size || MAX_SIZE) * 0.2;
         var rows = Math.max(2, Math.floor(p.size * 0.05));
-        this._drawMatrix(ctx, width, height, rows, cellSize, p.opacity || 1, p.color || colors[0], colors);
+        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
+        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
+        this._drawMatrix(ctx, width, height, rows, cellSize, manualOpacity, p.color || colors[0], colors);
       } else if (dataPoints && dataPoints.length > 0) {
         // In data-driven mode, create a matrix based on pairwise relationships
         var cellSize = Math.min(40, width / Math.ceil(Math.sqrt(dataPoints.length)));
