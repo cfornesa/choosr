@@ -10,36 +10,32 @@
   window.DataToArt.BarCodeStyle = {
     maxSize: MAX_SIZE,
     init: function(ctx, w, h, rc) {},
-    render: function(ctx, width, height, dataPoints, palette, rc) {
+    render: function(ctx, width, height, dataPoints, palette, renderingConfig) {
       var colors = (palette && palette.colors) || ['#c9922a', '#f0ece4', '#8a8580', '#444444'];
       var bg = (palette && palette.background) || '#0d0d0d';
       ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width * window.devicePixelRatio, height * window.devicePixelRatio);
+      ctx.fillRect(0, 0, width, height);
       ctx.restore();
 
       var cx = width / 2, cy = height / 2;
-      var isManual = dataPoints && dataPoints.length === 1 && dataPoints[0].x !== null;
 
-      if (isManual && dataPoints[0].x !== undefined) {
-        var p = dataPoints[0];
-        var barCount = Math.max(3, Math.floor((p.size || MAX_SIZE) * 0.05));
-        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
-        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        // Manual mode: canvas origin is at center after renderer transform
-        var barX;
-        var barY;
-        if (renderingConfig && renderingConfig.manualMode) {
-          barX = (p.x - 0.5) * width;
-          barY = (p.y - 0.5) * height;
-        } else {
-          barX = cx + p.x * width/2;
-          barY = cy + p.y * height/2;
+      // Manual mode: check renderingConfig.manualMode flag set by renderer
+      // Data-driven mode: use cx + p.x * width/2 positioning
+      var isManualMode = renderingConfig && renderingConfig.manualMode;
+
+      if (isManualMode) {
+        // Draw bars for each data point (like particleField iterates all points)
+        for (var i = 0; i < dataPoints.length; i++) {
+          var p = dataPoints[i];
+          var barCount = Math.max(3, Math.floor(((p.size || 0.5) * MAX_SIZE) * 0.02));
+          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
+          var barX = (p.x - 0.5) * width;
+          var barY = (p.y - 0.5) * height;
+          this._drawBars(ctx, barX, barY, barCount,
+              ((p.size || 0.5) * MAX_SIZE) * 0.08, manualOpacity, (p.rotation || 0) % 180 === 0 ? 'vertical' : 'horizontal',
+              p.color || colors[i % colors.length], colors);
         }
-        this._drawBars(ctx, barX, barY, barCount, 
-            (p.size || MAX_SIZE) * 0.2, manualOpacity, (p.rotation || 0) % 180 === 0 ? 'vertical' : 'horizontal',
-            p.color || colors[0], colors);
       } else if (dataPoints && dataPoints.length > 0) {
         // Data-driven: draw bars for each data point
         var barWidth = width / Math.min(dataPoints.length + 2, 20) * 0.8;

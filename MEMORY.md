@@ -366,3 +366,11 @@
     styles using `cx + p.x * width/2` pattern also need adjustment to
     `(p.x - 0.5) * width` for manual mode. Grid-based styles (geometricGrid,
     scatterMatrix) that use fixed index-based positioning are unaffected.
+
+2026-04-25 · BUG FIX · 7 art styles failed in Manual mode because they only used
+    `dataPoints[0]` instead of iterating all points. The `renderUsingExplicitDimensions`
+    method generates 30 data points, so element sizes must be reduced proportionally
+    (~3x smaller) when iterating all points. Pattern from `particleField.js`
+    (`for (var i = 0; i < total; i++)`) applied to all 8 affected styles
+    (neuralFlow, pixelMosaic, radialSymmetry, timeSeries, heatMap,
+    scatterMatrix, barCode, voronoiCells).

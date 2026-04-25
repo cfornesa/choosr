@@ -10,41 +10,40 @@
   window.DataToArt.RadialSymmetryStyle = {
     maxSize: MAX_SIZE,
     init: function(ctx, w, h, rc) {},
-    render: function(ctx, width, height, dataPoints, palette, rc) {
+    render: function(ctx, width, height, dataPoints, palette, renderingConfig) {
       var colors = (palette && palette.colors) || ['#c9922a', '#f0ece4', '#8a8580', '#444444'];
       var bg = (palette && palette.background) || '#0d0d0d';
       ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width * window.devicePixelRatio, height * window.devicePixelRatio);
+      ctx.fillRect(0, 0, width, height);
       ctx.restore();
 
       var cx = width / 2, cy = height / 2;
-      var isManual = dataPoints && dataPoints.length === 1 && dataPoints[0].x !== null;
 
-      if (isManual && dataPoints[0].x !== undefined) {
-        var p = dataPoints[0];
-        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
-        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        // Manual mode: canvas origin is at center after renderer transform
-        var symX;
-        var symY;
-        if (renderingConfig && renderingConfig.manualMode) {
-          symX = (p.x - 0.5) * width;
-          symY = (p.y - 0.5) * height;
-        } else {
-          symX = cx + p.x * width/2;
-          symY = cy + p.y * height/2;
+      // Manual mode: check renderingConfig.manualMode flag set by renderer
+      // Data-driven mode: use cx + p.x * width/2 positioning
+      var isManualMode = renderingConfig && renderingConfig.manualMode;
+
+      if (isManualMode) {
+        // Draw symmetry pattern for each data point (like particleField iterates all points)
+        for (var i = 0; i < dataPoints.length; i++) {
+          var p = dataPoints[i];
+          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
+          var symX = (p.x - 0.5) * width;
+          var symY = (p.y - 0.5) * height;
+          // Smaller radius since iterating many points instead of one
+          var segCount = Math.max(3, Math.floor(((p.size || 0.5) * MAX_SIZE) * 0.01)) || 6;
+          this._drawSymmetry(ctx, symX, symY, ((p.size || 0.5) * MAX_SIZE) * 0.1,
+              p.rotation || 0, segCount,
+              manualOpacity, p.color || colors[i % colors.length], colors);
         }
-        this._drawSymmetry(ctx, symX, symY, (p.size || MAX_SIZE) * 0.3, 
-            p.rotation || 0, Math.max(3, Math.floor(p.size * 0.02)) || 6, 
-            manualOpacity, p.color || colors[0], colors);
-      } else {
+      } else if (dataPoints && dataPoints.length > 0) {
+        // Data-driven: draw symmetry at each data point position
         for (var i = 0; i < Math.min(dataPoints.length, 10); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
           var segments = Math.max(3, Math.floor(((p.size || 0.5) * MAX_SIZE) * 0.02)) || 6;
-          this._drawSymmetry(ctx, cx + p.x * width/2, cy + p.y * height/2, 
+          this._drawSymmetry(ctx, cx + p.x * width/2, cy + p.y * height/2,
               ((p.size || 0.5) * MAX_SIZE) * 0.3, p.rotation || (i * 30), segments,
               p.opacity || 1, colors[i % colors.length], colors);
         }

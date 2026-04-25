@@ -652,6 +652,51 @@ None required — no new constraints identified
 
 ***
 
+## Session 27 — Manual Dimension Visualization Bug Fix (2026-04-25) — ADDENDUM
+
+**Additional Issues Found After Initial Fix:**
+
+1. **DPR scaling bug**: All style modules used `width * window.devicePixelRatio` for canvas fill but didn't reset transform before clearing. Combined with renderer applying `ctx.scale(this._dpr, this._dpr)` to the context, this caused coordinates to be scaled incorrectly in manual mode.
+
+2. **Confusing isManual detection**: Style modules checked `dataPoints.length === 1 && dataPoints[0].x !== null` AND `renderingConfig.manualMode` — two different conditions for determining manual mode. This caused inconsistent behavior.
+
+3. **Per-style positioning inside renderer transform**: Even with `renderingConfig.manualMode` being true, the per-style positioning code `(p.x - 0.5) * width` was being applied INSIDE the renderer's centered coordinate system. The renderer already translates/scales for manual mode, so applying additional offset positioning was wrong.
+
+4. **VoronoiCells rc parameter**: `_drawVoronoiFromPoints` still used `rc` parameter name causing issues.
+
+**Fixes Applied:**
+
+1. **Removed `setTransform(1,0,0,1,0,0)` + corrected fillRect**: Changed from `ctx.setTransform(...); ctx.fillRect(0, 0, width * dpr, height * dpr)` to simply `ctx.fillRect(0, 0, width, height)` in all 8 style files. The renderer already handles high-DPI scaling via `_dpr` property.
+
+2. **Simplified manual mode detection**: Changed all style modules to use `var isManualMode = renderingConfig && renderingConfig.manualMode` — a single condition based on the renderer's explicit flag.
+
+3. **Removed redundant positioning**: In manual mode, renderer already translates context to center (`ctx.translate(cssWidth/2 + translateX, cssHeight/2 + translateY)`). Styles should draw at (0,0) to be centered, not apply additional `(p.x - 0.5) * width` offset. Fixed pixelMosaic, radialSymmetry, heatMap, scatterMatrix, barCode, neuralFlow, voronoiCells, timeSeries.
+
+4. **Fixed voronoiCells _drawVoronoiFromPoints**: Changed parameter name from `rc` to `renderingConfig`.
+
+**Files Modified:**
+- `src/canvas/styles/pixelMosaic.js` — Simplified manual mode, removed DPR scaling
+- `src/canvas/styles/radialSymmetry.js` — Simplified manual mode, removed DPR scaling
+- `src/canvas/styles/heatMap.js` — Simplified manual mode, removed DPR scaling
+- `src/canvas/styles/scatterMatrix.js` — Simplified manual mode, removed DPR scaling
+- `src/canvas/styles/barCode.js` — Simplified manual mode, removed DPR scaling
+- `src/canvas/styles/neuralFlow.js` — Simplified manual mode, removed DPR scaling
+- `src/canvas/styles/voronoiCells.js` — Simplified manual mode, removed DPR scaling, fixed _drawVoronoiFromPoints parameter
+- `src/canvas/styles/timeSeries.js` — Simplified manual mode, removed DPR scaling
+
+**Assumptions Surfaced:**
+1. Renderer applies all manual mode transforms (translate, rotate, scale) BEFORE calling style's render function
+2. Style modules in manual mode should draw at position (0,0) relative to the already-translated context
+3. All 8 style modules had the same DPR scaling bug — they were inconsistent with working styles like particleField.js
+
+**Verification Checklist (updated):**
+- [ ] All 8 styles render in Manual mode without being offset to 75% position
+- [ ] voronoiCells no longer causes canvas to go blank
+- [ ] No console errors when switching between styles
+- [ ] DPR scaling works correctly (canvas fills properly)
+
+***
+
 ## Session 27 — Studio: Visual Dimensions Decoupled + 10 New Styles + Random (2026-04-24)
 
 **Issue:** User wants explicit dimension controls decoupled from dataset columns, plus expanded art style options.
@@ -1290,6 +1335,57 @@ Added Session 29 entry documenting the centering investigation and solution.
 2026-04-25 · UX · "Center Position" button added to VisualDimensions panel to give users an explicit, discoverable way to center artwork. Mathematically the defaults (x=0,y=0) already produce centered output, but users need an obvious affordance to understand and act on the centering concept.
 
 ---
+
+## Session 31 — Manual Mode Art Style Iteration Fix (2026-04-25)
+
+**Problem:** 7 art styles (neuralFlow, pixelMosaic, radialSymmetry, timeSeries, heatMap, scatterMatrix, barCode) failed to render properly in Manual Mode — only rendering 1-2 elements instead of the full visual output. voronoiCells rendered but positioned incorrectly.
+
+**Root Cause:** All broken styles used `var p = dataPoints[0]` and drew a single large element, while `renderUsingExplicitDimensions` generates 30 data points. The working `particleField` style correctly iterates all points via `for (var i = 0; i < total; i++)`.
+
+**Solution:** Updated all 8 styles (7 broken + voronoiCells) to iterate through all `dataPoints` like `particleField` does, adjusting element sizes proportionally since 30 points vs 1 point requires smaller elements.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/canvas/styles/neuralFlow.js` | Iterates `dataPoints.length`, uses `p.size || 0.5` pattern, reduced scale factor |
+| `src/canvas/styles/pixelMosaic.js` | Iterates all points, smaller tileSize (0.03 vs 0.1) and count (0.15 vs 0.5) |
+| `src/canvas/styles/radialSymmetry.js` | Iterates all points, smaller radius (0.1 vs 0.3), segCount from size*0.01 |
+| `src/canvas/styles/timeSeries.js` | Iterates all points, smaller size (0.02 vs 0.05), rotation offset per point |
+| `src/canvas/styles/heatMap.js` | Iterates all points, smaller radius (0.15 vs 0.5) |
+| `src/canvas/styles/scatterMatrix.js` | Iterates all points, smaller cellSize (0.08 vs 0.2) |
+| `src/canvas/styles/barCode.js` | Iterates all points, smaller maxHeight (0.08 vs 0.2), barCount from size*0.02 |
+| `src/canvas/styles/voronoiCells.js` | Iterates all points, smaller radius (0.08 vs 0.2), simpler approach |
+
+### Pattern Applied (from particleField)
+
+```javascript
+if (isManualMode) {
+  for (var i = 0; i < dataPoints.length; i++) {
+    var p = dataPoints[i];
+    var px = (p.x - 0.5) * width;
+    var py = (p.y - 0.5) * height;
+    var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) 
+      ? renderingConfig.opacity 
+      : (p.opacity !== null ? p.opacity : 1);
+    // Draw element with smaller size for multiple points
+    this._drawSomething(ctx, px, py, size, opacity, ...);
+  }
+}
+```
+
+### Assumption Surfaced
+1. 30 data points requires element size reduction proportionally (30x more points → ~3x smaller elements)
+2. The `(p.x - 0.5) * width` positioning is correct for manual mode (renderer applies transforms before style render)
+3. Data-driven mode `else` branches should remain untouched — only manual mode `if` blocks modified
+
+### Verification Checklist
+- [ ] All 8 styles render multiple elements in Manual mode
+- [ ] Elements are centered at canvas origin when X=0, Y=0
+- [ ] No console errors when switching styles
+- [ ] Data-Driven mode continues to work correctly
+
+***
 
 ## Session 30 — Canvas Centering and Rotation Origin Fix (2026-04-25)
 

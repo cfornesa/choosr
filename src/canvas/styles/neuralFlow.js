@@ -18,48 +18,37 @@
   window.DataToArt.NeuralFlowStyle = {
     maxSize: MAX_SIZE,
     init: function(ctx, width, height, rc) {},
-    render: function(ctx, width, height, dataPoints, palette, rc) {
+    render: function(ctx, width, height, dataPoints, palette, renderingConfig) {
       var colors = (palette && palette.colors) || ['#c9922a', '#f0ece4', '#8a8580'];
       var bg = (palette && palette.background) || '#0d0d0d';
       ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width * window.devicePixelRatio, height * window.devicePixelRatio);
+      ctx.fillRect(0, 0, width, height);
       ctx.restore();
 
       var cx = width / 2, cy = height / 2;
-      var isManual = dataPoints && dataPoints.length === 1 && dataPoints[0].x !== null;
 
-      if (isManual && dataPoints[0].x !== undefined) {
-        var p = dataPoints[0];
-        var px;
-        var py;
-        // Manual mode: canvas origin is at center after renderer transform
-        if (renderingConfig && renderingConfig.manualMode) {
-          px = (p.x - 0.5) * width;
-          py = (p.y - 0.5) * height;
-        } else {
-          px = cx + p.x * width/2;
-          py = cy + p.y * height/2;
+      // Manual mode: check renderingConfig.manualMode flag set by renderer
+      // Data-driven mode: use cx + p.x * width/2 positioning
+      var isManualMode = renderingConfig && renderingConfig.manualMode;
+
+      if (isManualMode) {
+        // Draw flows for each data point (like particleField iterates all points)
+        for (var i = 0; i < dataPoints.length; i++) {
+          var p = dataPoints[i];
+          var px = (p.x - 0.5) * width;
+          var py = (p.y - 0.5) * height;
+          var scale = ((p.size || 0.5) * MAX_SIZE) * 0.01;
+          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
+          this._drawFlow(ctx, px, py, width, height, scale, manualOpacity, p.rotation || 0, p.color || colors[i % colors.length], colors);
         }
-        var scale = (p.size || MAX_SIZE) * 0.01;
-        // Use renderingConfig.opacity if available (from canvas-level visual dimensions)
-        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
-        this._drawFlow(ctx, px, py, width, height, scale, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
-      } else {
+      } else if (dataPoints && dataPoints.length > 0) {
+        // Data-driven: draw flows at each data point position
         for (var i = 0; i < Math.min(dataPoints.length, 50); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
-          var px;
-          var py;
-          // Manual mode: canvas origin is at center after renderer transform
-          if (renderingConfig && renderingConfig.manualMode) {
-            px = (p.x - 0.5) * width;
-            py = (p.y - 0.5) * height;
-          } else {
-            px = cx + p.x * width/2;
-            py = cy + p.y * height/2;
-          }
+          var px = cx + p.x * width/2;
+          var py = cy + p.y * height/2;
           var scale = ((p.size || 0.5) * MAX_SIZE) * 0.01 * (p.size || 0.5);
           this._drawFlow(ctx, px, py, width, height, scale, p.opacity || 1, (p.rotation || 0), colors[i % colors.length], colors);
         }

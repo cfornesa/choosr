@@ -12,7 +12,7 @@
     init: function(ctx, w, h, rc) {
       this._lastTime = Date.now();
     },
-    render: function(ctx, width, height, dataPoints, palette, rc) {
+    render: function(ctx, width, height, dataPoints, palette, renderingConfig) {
       var colors = (palette && palette.colors) || ['#c9922a', '#f0ece4', '#8a8580'];
       var bg = (palette && palette.background) || '#0d0d0d';
       var now = Date.now();
@@ -20,45 +20,35 @@
       this._lastTime = now;
 
       ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width * window.devicePixelRatio, height * window.devicePixelRatio);
+      ctx.fillRect(0, 0, width, height);
       ctx.restore();
 
       var cx = width / 2, cy = height / 2;
-      var isManual = dataPoints && dataPoints.length === 1 && dataPoints[0].x !== null;
 
-      if (isManual && dataPoints[0].x !== undefined) {
-        var p = dataPoints[0];
-        // Use renderingConfig.opacity if provided (from canvas-level visual dimensions), else fall back to point opacity
-        var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity || 1);
-        // Manual mode: canvas origin is at center after renderer transform
-        var flowX;
-        var flowY;
-        if (renderingConfig && renderingConfig.manualMode) {
-          flowX = (p.x - 0.5) * width;
-          flowY = (p.y - 0.5) * height;
-        } else {
-          flowX = cx + p.x * width/2;
-          flowY = cy + p.y * height/2;
+      // Manual mode: check renderingConfig.manualMode flag set by renderer
+      // Data-driven mode: use cx + p.x * width/2 positioning
+      var isManualMode = renderingConfig && renderingConfig.manualMode;
+
+      if (isManualMode) {
+        // Draw particle flow for each data point (like particleField iterates all points)
+        for (var i = 0; i < dataPoints.length; i++) {
+          var p = dataPoints[i];
+          var manualOpacity = (renderingConfig && renderingConfig.opacity !== undefined) ? renderingConfig.opacity : (p.opacity !== null ? p.opacity : 1);
+          var flowX = (p.x - 0.5) * width;
+          var flowY = (p.y - 0.5) * height;
+          // Smaller size since iterating many points instead of one
+          this._drawParticleFlow(ctx, width, height, flowX, flowY,
+              ((p.size || 0.5) * MAX_SIZE) * 0.02, elapsed, manualOpacity, (p.rotation || 0) + (i * 15), p.color || colors[i % colors.length], colors);
         }
-        this._drawParticleFlow(ctx, width, height, flowX, flowY,
-            (p.size || MAX_SIZE) * 0.05, elapsed, manualOpacity, p.rotation || 0, p.color || colors[0], colors);
-      } else {
+      } else if (dataPoints && dataPoints.length > 0) {
+        // Data-driven: draw particle flows at each data point position
         for (var i = 0; i < Math.min(dataPoints.length, 40); i++) {
           var p = dataPoints[i];
           if (p.x === null || p.y === null) continue;
           var size = ((p.size || 0.5) * MAX_SIZE) * 0.05;
-          // Manual mode: canvas origin is at center after renderer transform
-          var flowX;
-          var flowY;
-          if (renderingConfig && renderingConfig.manualMode) {
-            flowX = (p.x - 0.5) * width;
-            flowY = (p.y - 0.5) * height;
-          } else {
-            flowX = cx + p.x * width/2;
-            flowY = cy + p.y * height/2;
-          }
+          var flowX = cx + p.x * width/2;
+          var flowY = cy + p.y * height/2;
           this._drawParticleFlow(ctx, width, height, flowX, flowY,
               size, elapsed, p.opacity || 1, (p.rotation || 0) + (i * 15), colors[i % colors.length], colors);
         }

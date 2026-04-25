@@ -72,9 +72,10 @@ treat every item as an extension of the Six Rules for that session. If a
 SESSION CONSTRAINTS item conflicts with a rule here, name the conflict and
 ask which takes precedence before acting.
 At session start, before any build work:
-1. Read DECISIONS.md. Surface any open REVIEW REQUIRED items to the human. Wait for sign-off.
-2. Read MEMORY.md. Surface any PENDING CONFIRMATION entries. Wait for confirmation or rejection.
-3. Only then proceed.
+1. Reading PROMPTS.md must happen BEFORE any file read or edited, not just at the start of a session.
+2. Read DECISIONS.md. Surface any open REVIEW REQUIRED items to the human. Wait for sign-off.
+3. Read MEMORY.md. Surface any PENDING CONFIRMATION entries. Wait for confirmation or rejection.
+4. Only then proceed.
 
 ---
 
@@ -163,8 +164,7 @@ Before final response:
 ## Project Specific Rules
 1. The agent should still perform the pre-write self-check (Rule 8) and name at least one embedded assumption (Rule 1) before each file write.
 2. Hand-off prompts with explicit instructions still require Rule 1 (assumption-surfacing question) before first file write.
-3. Rule 2 (gallery) is mandatory even when user provides explicit direction — present at least one reframe option. This does not exempt from the gallery requirement.
-4. Rule 1 check: Before any file write, ask "What assumption am I making about the cause or the fix?" and log it
-5. Even obvious fixes require stating: (a) the fix, (b) a reframe, (c) an unexpected alternative
-6. Rule 7 enforcement: Before any code changes, verify PROMPTS.md last entry matches current session. If not, stop and log as unresolved.
-7. Enforce Rule 1 check: Add explicit assumption-surfacing question before every search_replace call, even first one. Documentation phase compliance doesn't satisfy implementation phase requirement.
+3. Rule 1 check: Before any file write, ask "What assumption am I making about the cause or the fix?" and log it
+4. Even obvious fixes require stating: (a) the fix, (b) a reframe, (c) an unexpected alternative
+5. Rule 7 enforcement: Before any code changes, verify PROMPTS.md last entry matches current session. If not, stop and log as unresolved.
+6. Enforce Rule 1 check: Add explicit assumption-surfacing question before every search_replace call, even first one. Documentation phase compliance doesn't satisfy implementation phase requirement.
