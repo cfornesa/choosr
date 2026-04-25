@@ -17,6 +17,15 @@
      consolidate stable patterns and archive older entries to
      docs/memory-archive.md. -->
 
+2026-04-24 · ARCHITECTURE · Save/update operations must branch on existing state
+    (`_currentArtworkId`) rather than always creating new records — POST for new
+    artworks, PATCH for existing updates, with distinct status messages and error
+    handling.
+    [Session 23: `_onSaveArtworkClick()` in src/app.js checks `_currentArtworkId`
+    before fetch; api/artwork.php PATCH handler extended to handle full artwork
+    fields (art_style_id, dataset_id, column_mapping, palette_config,
+    rendering_config)]
+
 ---
 
 ## Confirmed Lessons
@@ -153,6 +162,13 @@
     [Implemented in Session 14: portfolio.php, exhibit.php with inline styles
     matching css/app.css palette]
 
+2026-04-24 · ARCHITECTURE · The existing DELETE handler at api/artwork.php
+    (lines 513-571) is fully functional with ownership verification and
+    thumbnail cleanup — frontend features like delete can be added without
+    any backend changes.
+    [Implemented in Session 21: Delete Artwork button in studio.php using
+    existing DELETE endpoint]
+
 2026-04-24 · ARCHITECTURE · User confirmation required for irreversible
     decisions — ALTER TABLE statements provided as SQL comments for manual
     execution via phpMyAdmin, not executed automatically.
@@ -195,3 +211,92 @@
     does not automatically add new columns to pre-existing tables.
     [Session 18: Missing is_featured column caused 500 error on artwork POST;
     user must run ALTER TABLE manually per schema.sql comments]
+
+2026-04-24 · ARCHITECTURE · The global namespace pattern (window.DataToArt) enables
+    cross-module method chaining for 2-step operations — renderer.exportBase64()
+    exposed via controls.exportBase64() exposed via app.js -> PHP backend, allowing
+    canvas capture at save time without architectural changes.
+    [Session 19: Thumbnail generation fix added exportBase64() to renderer.js,
+    controls.js wrapper, and app.js payload integration]
+
+2026-04-24 · ARCHITECTURE · Public asset URLs must be passed to frontend JS via
+    PHP-echoed config variables — never hardcode paths that differ between
+    development and production environments.
+    [Session 15: index.php and portfolio.php use DTA_CONFIG.thumbnailUrl from
+    ARTWORK_THUMBNAIL_URL constant]
+
+2026-04-24 · ARCHITECTURE · Phase 2 requires auth integration at all data-mutating
+    endpoints; upload.php completion closes C-04 gap by requiring session.php
+    and passing $currentUserId to the database.
+    [Session 24: api/upload.php now properly associates uploads with authenticated
+    users, addressing unresolved checkpoint from Session 4]
+
+2026-04-24 · WORKFLOW · Mobile-first progressive enhancement must maintain C-02
+    compliance: hamburger menus use CSS display toggle, hard offset shadows,
+    no gradients, and maintain instrument-like feel for controls.
+    [Session 24: css/app.css mobile navigation system with 120+ lines of
+    responsive layout code following DESIGN.md workstation metaphor]
+
+2026-04-24 · ARCHITECTURE · Artwork thumbnail generation must occur on both POST
+    (create) and PATCH (update) — PATCH handler must include thumbnail_data in
+    allowed fields and process it identically to POST, including old file cleanup.
+    [Session 26: api/artwork.php PATCH handler extended to mirror POST thumbnail
+    pipeline; old thumbnail files deleted before new ones saved]
+
+2026-04-24 · ARCHITECTURE · Visual dimensions must be decoupled from dataset
+    column mapping — dimensions (X, Y, Size, Opacity, Rotation, Color) are
+    explicit user-defined parameters, not derived from data columns. This
+    separation enables direct creative control while preserving data-driven
+    capabilities via mode toggle.
+    [Session 27: visualDimensions.js created with explicit sliders; mode
+    toggle added to studio.php; Controls adapted to support both Manual
+    (explicit dimensions) and Data-driven (column mapping) modes]
+
+2026-04-24 · ARCHITECTURE · Art style modules must expose maxSize property
+    for VisualDimensions module to constrain Size slider range appropriately
+    per style.
+    [Session 27: All art style modules include maxSize; VisualDimensions.reads
+    current style maxSize and updates Size slider max accordingly]
+
+2026-04-25 · BLOCKER · Hybrid mode architecture requires database schema
+    extension: mode column and visual_dimensions JSON column in artworks
+    table to support Manual mode persistence. Without these, Manual mode
+    artworks lose all dimension state on save/reload.
+    [Session 28: ALTER TABLE artworks ADD COLUMN mode VARCHAR(10),
+    ADD COLUMN visual_dimensions JSON; save/load updated to persist mode
+    and visualDimensions]
+
+2026-04-25 · ARCHITECTURE · Style loading map must include all registered
+    styles (1-13) to correctly load artworks by art_style_id. Previously only
+    mapped 1-3 (particleField, geometricGrid, flowingCurves) causing new styles
+    to default to particleField on load.
+    [Session 28: Extended styleKeyForId map to include all 13 styles]
+
+2026-04-25 · WORKFLOW · Fetch promises must include .catch() handlers to
+    prevent unhandled promise rejections that mask real errors and clutter
+    browser console.
+    [Session 28: All fetch() calls in app.js updated with .catch()
+    handlers interconnected to _showError()]
+
+2026-04-25 · BLOCKER · renderUsingExplicitDimensions method was missing from
+    Renderer, causing Manual mode to fail completely with TypeError. Single data
+    point generation insufficient for meaningful art style output.
+    VisualDimensions module existed but was not integrated in Controls, causing
+    panel to be missing from UI.
+    [Session 28: Added renderUsingExplicitDimensions() to Renderer generating 30
+    data points; integrated VisualDimensions in Controls; wired mode toggle
+    in app.js]
+
+2026-04-25 · ARCHITECTURE · Manual mode uses explicit user-defined parameters
+    (x, y, size, opacity, rotation, color) to generate synthetic data, while
+    Data-Driven mode uses actual dataset columns. These are fundamentally
+    different rendering paths requiring separate code.
+    [Session 28: Controls.js mode detection routes to separate render paths;
+    Manual mode uses renderUsingExplicitDimensions with synthetic data points;
+    Data-Driven mode uses original render with dataset data]
+
+2026-04-25 · WORKFLOW · Mode toggle radio in studio.php must sync with Controls
+    internal mode state, and show/hide appropriate control panels
+    (VisualDimensions for Manual, ColumnMapper for Data-Driven).
+    [Session 28: Controls.setMode() updates _currentMode and toggles panel
+    visibility; app.js syncs radio state with mode and wires change events]

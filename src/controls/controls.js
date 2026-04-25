@@ -52,8 +52,9 @@
   var _renderer = null;
   var _columnContainer = null;
   var _paletteContainer = null;
+  var _visualContainer = null;
 
-
+  var _currentMode = 'manual'; // 'manual' or 'data'
 
   var _debounceTimer = null;
 
@@ -96,6 +97,16 @@
     _triggerRenderDebounced();
   }
 
+  /**
+   * Called by VisualDimensions when any dimension slider changes.
+   * Receives the complete dimensions object.
+   */
+  function _onVisualDimensionsChange(newDimensions) {
+    Controls._currentVisualDimensions = newDimensions;
+    log('Visual dimensions changed:', JSON.stringify(newDimensions));
+    _triggerRenderDebounced();
+  }
+
   // ─── Public API ────────────────────────────────────────────────────────────
 
   var Controls = {
@@ -104,6 +115,37 @@
     _currentPaletteConfig: null,
     _currentRenderingConfig: null,
     _currentStyleKey: null,
+    _currentVisualDimensions: null,
+
+    /**
+     * Set the dimension mode (manual vs data-driven)
+     * @param {string} mode - 'manual' or 'data'
+     */
+    setMode: function(mode) {
+      if (mode !== 'manual' && mode !== 'data') {
+        warn('Controls.setMode() — invalid mode:', mode);
+        return;
+      }
+      _currentMode = mode;
+
+      // Show/hide panels based on mode
+      if (_columnContainer) {
+        _columnContainer.style.display = (mode === 'data') ? 'block' : 'none';
+      }
+      if (_visualContainer) {
+        _visualContainer.style.display = (mode === 'manual') ? 'block' : 'none';
+      }
+
+      log('Mode set to:', mode);
+    },
+
+    /**
+     * Get current mode
+     * @returns {string} 'manual' or 'data'
+     */
+    getMode: function() {
+      return _currentMode;
+    },
 
     /**
      * Initialize the controls system. Validates dependencies, creates
@@ -154,6 +196,11 @@
         background: DEFAULT_BACKGROUND
       };
 
+      // Initialize VisualDimensions with default values
+      Controls._currentVisualDimensions = {
+        x: 0, y: 0, size: 100, opacity: 1, rotation: 0, color: '#ff0000'
+      };
+
       // Initialize Renderer
       _renderer = new window.DataToArt.Renderer(canvasElement, options.rendererOptions);
 
@@ -165,6 +212,10 @@
       _paletteContainer = document.createElement('div');
       _paletteContainer.id = 'dta-palette-picker';
       _controlsEl.appendChild(_paletteContainer);
+
+      _visualContainer = document.createElement('div');
+      _visualContainer.id = 'dta-visual-dimensions';
+      _controlsEl.appendChild(_visualContainer);
 
       // Initialize ColumnMapper (no dataset loaded yet)
       window.DataToArt.ColumnMapper.render(
@@ -181,8 +232,22 @@
         _onPaletteChange
       );
 
+      // Initialize VisualDimensions
+      if (window.DataToArt.VisualDimensions) {
+        window.DataToArt.VisualDimensions.init(
+          _visualContainer,
+          _onVisualDimensionsChange,
+          500  // default maxSize
+        );
+      }
+
       // Set up debounced render trigger
       _debounceTimer = null;
+
+      // Default to manual mode if app.js doesn't set it
+      if (!window.DataToArt.Controls.getMode()) {
+        Controls.setMode('manual');
+      }
 
       // Clear canvas with default background
       _renderer.clear(DEFAULT_BACKGROUND);
@@ -270,7 +335,6 @@
     /**
      * Trigger an immediate render with current state.
      * Called by the debounced wrapper after the timeout.
-     * Does nothing if no dataset is loaded.
      */
     triggerRender: function() {
       if (!_renderer) {
@@ -278,31 +342,59 @@
         return;
       }
 
-      if (!Controls._currentDataset) {
-        log('triggerRender() — no dataset loaded, clearing canvas');
-        _renderer.clear(Controls._currentPaletteConfig.background);
-        return;
-      }
+      var mode = Controls.getMode();
 
-      log('Rendering — style:', Controls._currentStyleKey, 'mapping:', JSON.stringify(Controls._currentColumnMapping));
-
-      // Clean data: filter out rows with invalid numeric values for mapped dimensions
-      var cleanedDataset = Controls._currentDataset;
-      if (window.DataToArt && window.DataToArt.DataMapper && typeof window.DataToArt.DataMapper.cleanData === 'function') {
-        cleanedDataset = window.DataToArt.DataMapper.cleanData(Controls._currentDataset, Controls._currentColumnMapping);
-        var rowsRemoved = Controls._currentDataset.row_count - (cleanedDataset.row_count || 0);
-        if (rowsRemoved > 0) {
-          log('Data cleaning removed ' + rowsRemoved + ' rows with invalid mapped values');
+      if (mode === 'manual') {
+        // Manual mode: use explicit VisualDimensions values
+        if (!Controls._currentVisualDimensions) {
+          log('triggerRender() — no visual dimensions set in manual mode, using defaults');
+          Controls._currentVisualDimensions = { x: 0, y: 0, size: 100, opacity: 1, rotation: 0, color: '#ff0000' };
         }
-      }
 
-      _renderer.render(
-        cleanedDataset,
-        Controls._currentColumnMapping,
-        Controls._currentPaletteConfig,
-        Controls._currentRenderingConfig,
-        Controls._currentStyleKey
-      );
+        log('Rendering (Manual mode) — style:', Controls._currentStyleKey, 
+            'dimensions:', JSON.stringify(Controls._currentVisualDimensions));
+
+        _renderer.renderUsingExplicitDimensions(
+          Controls._currentVisualDimensions,
+          Controls._currentPaletteConfig,
+          Controls._currentRenderingConfig,
+          Controls._currentStyleKey
+        );
+      } else {
+        // Data-driven mode: use dataset and column mapping
+        if (!Controls._currentDataset) {
+          log('triggerRender() — no dataset loaded in data-driven mode, using default visual dimensions');
+          var defaultDimensions = { x: 0, y: 0, size: 100, opacity: 1, rotation: 0, color: '#ff0000' };
+          _renderer.renderUsingExplicitDimensions(
+            defaultDimensions,
+            Controls._currentPaletteConfig,
+            Controls._currentRenderingConfig,
+            Controls._currentStyleKey
+          );
+          return;
+        }
+
+        log('Rendering (Data-driven mode) — style:', Controls._currentStyleKey, 
+            'mapping:', JSON.stringify(Controls._currentColumnMapping));
+
+        // Clean data: filter out rows with invalid numeric values for mapped dimensions
+        var cleanedDataset = Controls._currentDataset;
+        if (window.DataToArt && window.DataToArt.DataMapper && typeof window.DataToArt.DataMapper.cleanData === 'function') {
+          cleanedDataset = window.DataToArt.DataMapper.cleanData(Controls._currentDataset, Controls._currentColumnMapping);
+          var rowsRemoved = Controls._currentDataset.row_count - (cleanedDataset.row_count || 0);
+          if (rowsRemoved > 0) {
+            log('Data cleaning removed ' + rowsRemoved + ' rows with invalid mapped values');
+          }
+        }
+
+        _renderer.render(
+          cleanedDataset,
+          Controls._currentColumnMapping,
+          Controls._currentPaletteConfig,
+          Controls._currentRenderingConfig,
+          Controls._currentStyleKey
+        );
+      }
     },
 
     /**
@@ -316,8 +408,10 @@
         return;
       }
 
-      if (!Controls._currentDataset) {
-        warn('triggerExport() — no dataset loaded, nothing to export');
+      // In Manual mode, we can export even without a dataset
+      // In Data-Driven mode without a dataset, use default rendering
+      if (Controls.getMode() === 'data' && !Controls._currentDataset) {
+        warn('triggerExport() — no dataset loaded in data-driven mode, nothing to export');
         return;
       }
 

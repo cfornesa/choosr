@@ -12,6 +12,7 @@
  */
 
 header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
 
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/database.php';
@@ -56,7 +57,7 @@ try {
         $stmt = $pdo->prepare('
             SELECT a.*, s.display_name AS art_style_name, s.style_key
             FROM artworks a
-            JOIN art_styles s ON a.art_style_id = s.id
+            LEFT JOIN art_styles s ON a.art_style_id = s.id
             WHERE a.is_public = 1 AND a.is_featured = 1
             ORDER BY a.created_at DESC
             LIMIT :limit OFFSET :offset
@@ -65,10 +66,14 @@ try {
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     } else {
         // All public artworks: is_public=1, featured first then others
+        if ($limit === null) {
+            $limit = PORTFOLIO_ITEMS_PER_PAGE;
+        }
+
         $stmt = $pdo->prepare('
             SELECT a.*, s.display_name AS art_style_name, s.style_key
             FROM artworks a
-            JOIN art_styles s ON a.art_style_id = s.id
+            LEFT JOIN art_styles s ON a.art_style_id = s.id
             WHERE a.is_public = 1
             ORDER BY a.is_featured DESC, a.created_at DESC
             LIMIT :limit OFFSET :offset

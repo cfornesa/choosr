@@ -4,19 +4,16 @@
  *
  * Route: /
  * 
- * - If user is authenticated, redirect to /studio.php
- * - If not authenticated, show landing page with login/register CTAs
+ * - Show public landing page with featured artworks
+ * - Authenticated users can access Studio and Data via navigation
  */
 
 require_once __DIR__ . '/config/bootstrap.php';
 require_once __DIR__ . '/config/env.php';
 
-// ── Redirect authenticated users to studio ────────────────────────────
-if (is_authenticated()) {
-    header('Location: /studio.php');
-    exit;
-}
+$current_page = 'home';
 
+// No redirect - allow both authenticated and unauthenticated users
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -44,12 +41,17 @@ if (is_authenticated()) {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 48px 24px;
+      padding: 24px;
       text-align: center;
     }
     
     #dta-landing-header {
-      margin-bottom: 48px;
+      margin-bottom: 24px;
+    }
+    
+    /* Landing header is now replaced by nav in header */
+    #dta-landing-header h1 {
+      display: none;
     }
     
     #dta-landing-header h1 {
@@ -256,9 +258,34 @@ if (is_authenticated()) {
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Header with Navigation -->
   <header id="dta-header">
-    <h1>Data-to-Art Studio</h1>
+    <div class="dta-header-title">
+      <h1>Data-to-Art Studio</h1>
+      <button class="dta-hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+    </div>
+    <nav class="dta-nav">
+      <a href="index.php" class="active">Home</a>
+      <?php if (is_authenticated()): ?>
+        <a href="studio.php">Studio</a>
+        <a href="data.php">Data</a>
+        <a href="portfolio.php">Portfolio</a>
+        <a href="#" onclick="event.preventDefault(); logout(); toggleMobileNav();" class="dta-nav-logout">Log Out</a>
+      <?php else: ?>
+        <a href="portfolio.php">Portfolio</a>
+      <?php endif; ?>
+    </nav>
+    <nav class="dta-mobile-nav">
+      <a href="index.php" class="active">Home</a>
+      <?php if (is_authenticated()): ?>
+        <a href="studio.php">Studio</a>
+        <a href="data.php">Data</a>
+        <a href="portfolio.php">Portfolio</a>
+        <a href="#" onclick="event.preventDefault(); logout(); toggleMobileNav();" class="dta-nav-logout">Log Out</a>
+      <?php else: ?>
+        <a href="portfolio.php">Portfolio</a>
+      <?php endif; ?>
+    </nav>
   </header>
 
   <!-- Landing Page Content -->
@@ -272,26 +299,6 @@ if (is_authenticated()) {
       map columns to visual dimensions, and compose unique pieces using our
       collection of art styles and palettes.
     </p>
-
-    <div id="dta-landing-actions">
-      <a href="studio.php" class="dta-cta-btn dta-cta-btn-primary">Enter Studio</a>
-      <a href="#" onclick="showAuthModal()" class="dta-cta-btn dta-cta-btn-secondary">Login (owner only)</a>
-    </div>
-
-    <div id="dta-landing-features">
-      <div class="dta-feature-card">
-        <h3>Upload Data</h3>
-        <p>Bring your own CSV, TSV, or Excel files and see them transformed into art.</p>
-      </div>
-      <div class="dta-feature-card">
-        <h3>Map & Control</h3>
-        <p>Assign data columns to visual properties: color, size, position, and more.</p>
-      </div>
-      <div class="dta-feature-card">
-        <h3>Export & Share</h3>
-        <p>Save your creations as PNG images and share them with the world.</p>
-      </div>
-    </div>
 
     <!-- Featured Pieces Section -->
     <section id="dta-featured-section">
@@ -308,74 +315,55 @@ if (is_authenticated()) {
     <p><a href="portfolio.php" style="color:#606060;">View all public artworks</a></p>
   </footer>
 
-  <!-- Simple inline auth modal that redirects to studio after login -->
-  <div id="dta-auth-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000;" onclick="closeAuthModal(event)">
-    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:#242018; padding:32px; border:2px solid #c9922a; box-shadow:4px 4px 0px #000000; width:320px; max-width:90%;" onclick="event.stopPropagation()">
-      <h2 style="color:#c9922a; margin-bottom:24px; font-size:18px; text-transform:uppercase;">Log In</h2>
-      <form id="dta-quick-login" onsubmit="quickLogin(event)">
-        <div style="margin-bottom:16px;">
-          <label for="modal-email" style="display:block; margin-bottom:4px; color:#a0a0a0; font-size:14px;">Email</label>
-          <input type="email" id="modal-email" name="email" required style="width:100%; padding:8px; background:#1c1814; border:1px solid #333; color:#f0ece4; font-family:system-ui, sans-serif; font-size:14px;" autocomplete="email">
-        </div>
-        <div style="margin-bottom:24px;">
-          <label for="modal-password" style="display:block; margin-bottom:4px; color:#a0a0a0; font-size:14px;">Password</label>
-          <input type="password" id="modal-password" name="password" required style="width:100%; padding:8px; background:#1c1814; border:1px solid #333; color:#f0ece4; font-family:system-ui, sans-serif; font-size:14px;" autocomplete="current-password">
-        </div>
-        <button type="submit" style="width:100%; padding:12px; background:#c9922a; color:#1c1814; border:none; font-size:14px; font-weight:600; text-transform:uppercase; cursor:pointer;">Log In</button>
-      </form>
-      <p style="margin-top:16px; font-size:12px; color:#606060;">
-        Owner access only
-      </p>
-    </div>
-  </div>
-
+  <!-- Logout & Mobile Nav Functions -->
   <script>
-    function showAuthModal() {
-      document.getElementById('dta-auth-modal').style.display = 'block';
-      document.getElementById('modal-email').focus();
-    }
-    
-    function closeAuthModal(event) {
-      if (event && event.target.id === 'dta-auth-modal') {
-        document.getElementById('dta-auth-modal').style.display = 'none';
-      }
-    }
-    
-    function quickLogin(event) {
-      event.preventDefault();
-      var email = document.getElementById('modal-email').value;
-      var password = document.getElementById('modal-password').value;
-      
-      fetch('api/auth/login.php', {
+    function logout() {
+      fetch('api/auth/logout.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, password: password })
+        credentials: 'include'
       })
       .then(function(response) {
-        if (!response.ok) {
-          throw new Error('Login failed');
-        }
         return response.json();
       })
       .then(function(data) {
         if (data.success) {
-          window.location.href = 'studio.php';
+          window.location.href = 'index.php';
         } else {
-          alert(data.error || 'Login failed');
+          alert('Logout failed: ' + (data.error || 'Unknown error'));
         }
       })
       .catch(function(err) {
-        alert('Login failed: ' + err.message);
+        alert('Logout failed: ' + err.message);
       });
     }
-    
-    // Close modal on Escape key
-    document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape') {
-        document.getElementById('dta-auth-modal').style.display = 'none';
+
+    function toggleMobileNav() {
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (mobileNav) {
+        mobileNav.classList.toggle('dta-visible');
+      }
+    }
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', function(event) {
+      var hamburger = document.querySelector('.dta-hamburger');
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (hamburger && mobileNav && mobileNav.classList.contains('dta-visible')) {
+        if (!hamburger.contains(event.target) && !mobileNav.contains(event.target)) {
+          mobileNav.classList.remove('dta-visible');
+        }
       }
     });
 
+    // Close mobile nav when clicking a link inside it
+    document.addEventListener('click', function(event) {
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (mobileNav && event.target.closest('a') && mobileNav.contains(event.target)) {
+        mobileNav.classList.remove('dta-visible');
+      }
+    });
+    
     // Load featured artworks on page load
     document.addEventListener('DOMContentLoaded', function() {
       loadFeaturedArtworks();

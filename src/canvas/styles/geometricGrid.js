@@ -90,6 +90,8 @@
 
   window.DataToArt = window.DataToArt || {};
   window.DataToArt.GeometricGridStyle = {
+    // Maximum size for VisualDimensions module (pixels)
+    maxSize: 300,
 
     /**
      * One-time setup called before first render.

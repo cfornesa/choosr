@@ -14,6 +14,7 @@
  */
 
 header('Content-Type: application/json');
+header('Cache-Control: no-cache, must-revalidate');
 
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/database.php';
@@ -232,10 +233,10 @@ if ($method === 'POST') {
         $insert_stmt = $pdo->prepare('
             INSERT INTO artworks
                 (user_id, dataset_id, art_style_id, title, description,
-                 column_mapping, palette_config, rendering_config, is_public, is_featured, tags)
+                 column_mapping, palette_config, rendering_config, is_public, is_featured, tags, thumbnail_path)
             VALUES
                 (:user_id, :dataset_id, :art_style_id, :title, :description,
-                 :column_mapping, :palette_config, :rendering_config, :is_public, :is_featured, :tags)
+                 :column_mapping, :palette_config, :rendering_config, :is_public, :is_featured, :tags, NULL)
         ');
 
         $insert_stmt->execute([
@@ -253,6 +254,34 @@ if ($method === 'POST') {
         ]);
 
         $artwork_id = (int) $pdo->lastInsertId();
+
+        // ── Process thumbnail (if provided) ──────────────────────────────────
+        $thumbnail_data = $body['thumbnail_data'] ?? null;
+        error_log('artwork.php: thumbnail_data received: ' . ($thumbnail_data !== null ? 'YES (length: ' . strlen($thumbnail_data) . ')' : 'NULL'));
+        if ($thumbnail_data !== null) {
+            error_log('artwork.php: Processing thumbnail for artwork_id: ' . $artwork_id);
+            // Strip the data:image/png;base64, prefix if present
+            $base64_string = preg_replace('/^data:image\/\w+;base64,/', '', $thumbnail_data);
+            $image_data = base64_decode($base64_string);
+
+            if ($image_data !== false && strlen($image_data) > 0) {
+                $thumbnail_filename = $artwork_id . '_' . time() . '.png';
+                $thumbnail_path_full = ARTWORK_THUMBNAIL_DIR . $thumbnail_filename;
+                error_log('artwork.php: Writing thumbnail to: ' . $thumbnail_path_full);
+
+                if (file_put_contents($thumbnail_path_full, $image_data) !== false) {
+                    error_log('artwork.php: Thumbnail file written successfully');
+                    // Update the artwork record with the thumbnail filename
+                    $update_thumb_stmt = $pdo->prepare('UPDATE artworks SET thumbnail_path = :thumbnail_path WHERE id = :id');
+                    $update_thumb_stmt->execute([':thumbnail_path' => $thumbnail_filename, ':id' => $artwork_id]);
+                    error_log('artwork.php: Database updated with thumbnail_path: ' . $thumbnail_filename);
+                } else {
+                    error_log('artwork.php: Failed to write thumbnail file: ' . $thumbnail_path_full);
+                }
+            } else {
+                error_log('artwork.php: Failed to decode thumbnail_base64 for artwork_id: ' . $artwork_id);
+            }
+        }
 
         http_response_code(201);
         echo json_encode([
@@ -299,13 +328,92 @@ if ($method === 'PATCH') {
     }
 
     // Only allow updating these metadata fields
-    $allowedFields = ['title', 'description', 'tags', 'is_public', 'is_featured'];
+    $allowedFields = ['art_style_id', 'title', 'description', 'tags', 'dataset_id', 'column_mapping', 'palette_config', 'rendering_config', 'is_public', 'is_featured', 'thumbnail_data'];
     $updates = [];
     $params = ['id' => $id, 'user_id' => $currentUserId];
+    $thumbnail_data = null;
 
     foreach ($allowedFields as $field) {
         if (isset($body[$field])) {
             switch ($field) {
+                case 'art_style_id':
+                    $val = filter_var($body['art_style_id'], FILTER_VALIDATE_INT);
+                    if ($val === false || $val <= 0) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Invalid art_style_id']);
+                        exit;
+                    }
+                    // Verify art_style exists and is active
+                    $style_chk = $pdo->prepare('SELECT id FROM art_styles WHERE id = :id AND is_active = 1');
+                    $style_chk->execute([':id' => $val]);
+                    if (!$style_chk->fetch()) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Invalid art style']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $val;
+                    break;
+
+                case 'dataset_id':
+                    $val = filter_var($body['dataset_id'], FILTER_VALIDATE_INT);
+                    if ($val === false || $val <= 0) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Invalid dataset_id']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $val;
+                    break;
+
+                case 'column_mapping':
+                    if (!is_array($body['column_mapping'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'column_mapping must be a JSON object or array']);
+                        exit;
+                    }
+                    $encoded = json_encode($body['column_mapping']);
+                    if ($encoded === false) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Failed to encode column_mapping as JSON']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $encoded;
+                    break;
+
+                case 'palette_config':
+                    if (!is_array($body['palette_config'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'palette_config must be a JSON object or array']);
+                        exit;
+                    }
+                    $encoded = json_encode($body['palette_config']);
+                    if ($encoded === false) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Failed to encode palette_config as JSON']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $encoded;
+                    break;
+
+                case 'rendering_config':
+                    if ($body['rendering_config'] !== null && !is_array($body['rendering_config'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'rendering_config must be a JSON object, array, or null']);
+                        exit;
+                    }
+                    $encoded = ($body['rendering_config'] !== null) ? json_encode($body['rendering_config']) : null;
+                    if ($body['rendering_config'] !== null && $encoded === false) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Failed to encode rendering_config as JSON']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $encoded;
+                    break;
+
                 case 'title':
                     if (mb_strlen($body['title']) > 255) {
                         http_response_code(400);
@@ -347,11 +455,16 @@ if ($method === 'PATCH') {
                     $updates[] = "`$field` = :$field";
                     $params[":$field"] = ($val === false ? 0 : ($val ? 1 : 0));
                     break;
+
+                case 'thumbnail_data':
+                    // Don't add to UPDATE clause - handle separately after UPDATE
+                    $thumbnail_data = $body['thumbnail_data'];
+                    break;
             }
         }
     }
 
-    if (empty($updates)) {
+    if (empty($updates) && $thumbnail_data === null) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'No valid fields to update']);
         exit;
@@ -381,7 +494,49 @@ if ($method === 'PATCH') {
             exit;
         }
 
-        echo json_encode(['success' => true]);
+        // ── Process thumbnail if provided ──────────────────────────────────
+        if ($thumbnail_data !== null) {
+            error_log('artwork.php PATCH: Processing thumbnail for artwork_id: ' . $id);
+            // Fetch current thumbnail_path to delete old file
+            $old_thumb_stmt = $pdo->prepare('SELECT thumbnail_path FROM artworks WHERE id = :id');
+            $old_thumb_stmt->execute([':id' => $id]);
+            $old_thumb = $old_thumb_stmt->fetch();
+            
+            if ($old_thumb && $old_thumb['thumbnail_path'] !== null) {
+                $old_thumb_path_full = ARTWORK_THUMBNAIL_DIR . $old_thumb['thumbnail_path'];
+                if (file_exists($old_thumb_path_full)) {
+                    unlink($old_thumb_path_full);
+                    error_log('artwork.php PATCH: Deleted old thumbnail: ' . $old_thumb_path_full);
+                }
+            }
+
+            // Strip the data:image/png;base64, prefix if present
+            $base64_string = preg_replace('/^data:image\/\w+;base64,/', '', $thumbnail_data);
+            $image_data = base64_decode($base64_string);
+
+            if ($image_data !== false && strlen($image_data) > 0) {
+                $thumbnail_filename = $id . '_' . time() . '.png';
+                $thumbnail_path_full = ARTWORK_THUMBNAIL_DIR . $thumbnail_filename;
+                error_log('artwork.php PATCH: Writing thumbnail to: ' . $thumbnail_path_full);
+
+                if (file_put_contents($thumbnail_path_full, $image_data) !== false) {
+                    error_log('artwork.php PATCH: Thumbnail file written successfully');
+                    // Update the artwork record with the new thumbnail filename
+                    $update_thumb_stmt = $pdo->prepare('UPDATE artworks SET thumbnail_path = :thumbnail_path WHERE id = :id');
+                    $update_thumb_stmt->execute([':thumbnail_path' => $thumbnail_filename, ':id' => $id]);
+                    error_log('artwork.php PATCH: Database updated with thumbnail_path: ' . $thumbnail_filename);
+                } else {
+                    error_log('artwork.php PATCH: Failed to write thumbnail file: ' . $thumbnail_path_full);
+                }
+            } else {
+                error_log('artwork.php PATCH: Failed to decode thumbnail_base64 for artwork_id: ' . $id);
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'artwork_id' => $id
+        ]);
 
     } catch (PDOException $e) {
         $message = APP_DEBUG
@@ -541,6 +696,22 @@ if ($method === 'DELETE') {
     }
     exit;
 }
+
+/*
+ * NOTE ON AUTO_INCREMENT AFTER DELETE:
+ * MySQL InnoDB does NOT reuse AUTO_INCREMENT IDs by default.
+ * After deleting artwork ID 1, the next insert will still use the next
+ * available ID (MAX(id) + 1), not reuse ID 1.
+ *
+ * To reset the counter (rarely needed):
+ *   ALTER TABLE artworks AUTO_INCREMENT = 1;
+ * MySQL will set it to MAX(id) + 1, so if only ID 2 exists, next is 3.
+ *
+ * To actually reuse ID 1, you must:
+ *   1. DELETE FROM artworks WHERE id = 1;
+ *   2. ALTER TABLE artworks AUTO_INCREMENT = 1;
+ *   3. Next insert will be ID 2 (or 1 if table is empty)
+ */
 
 // ── Method not allowed ───────────────────────────────────────
 

@@ -5,7 +5,7 @@
 
 ---
 
-## Six Rules — Override Everything
+## Seven Rules — Override Everything
 
 1. Ask one assumption-surfacing question before any significant change. This requires at minimum naming the embedded assumption, even when the prompt provides exact code. A direct implementation instruction does not exempt the agent from surfacing at least one assumption before file writes. Name the assumption, then proceed." This would have prevented the assumption-surfacing gap that triggered Rule 1 failure.
 2. Show 2–3 meaningfully different options before committing. One must be a
@@ -18,6 +18,7 @@
 6. If specified tech is non-functional, stop. State the issue. Present
    alternatives via gallery. No silent workarounds. Each replacement
    dependency = fresh gallery + confirmation.
+7. The contents of PROMPTS.md must be read and confirmed before implementation. This is where the current prompt lives. In plan mode, propose additions to PROMPTS.md. In implementation mode, ask the user to confirm that the last entry in PROMPTS.md is accurate before any other code changes can be done.
 
 ---
 
@@ -28,6 +29,7 @@
 3. Does this install a package or call an external service? → Update
    docs/dependencies.md first.
 4. Irreversible? API? Dependencies? Assumptions?
+5. Has PROMPTS.md been read and the last entry confirmed as current? Stop if not.
 
 ---
 
@@ -164,3 +166,5 @@ Before final response:
 3. Rule 2 (gallery) is mandatory even when user provides explicit direction — present at least one reframe option. This does not exempt from the gallery requirement.
 4. Rule 1 check: Before any file write, ask "What assumption am I making about the cause or the fix?" and log it
 5. Even obvious fixes require stating: (a) the fix, (b) a reframe, (c) an unexpected alternative
+6. Rule 7 enforcement: Before any code changes, verify PROMPTS.md last entry matches current session. If not, stop and log as unresolved.
+7. Enforce Rule 1 check: Add explicit assumption-surfacing question before every search_replace call, even first one. Documentation phase compliance doesn't satisfy implementation phase requirement.

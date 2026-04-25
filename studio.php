@@ -4,15 +4,17 @@
  *
  * Route: /studio.php
  * 
- * - If user is NOT authenticated, redirect to / (index.php)
+ * - If user is NOT authenticated, redirect to /login.php
  * - If user IS authenticated, render the full studio UI
  */
 
 require_once __DIR__ . '/config/bootstrap.php';
 
-// ── Redirect unauthenticated users to home ──────────────────────────────
+$current_page = 'studio';
+
+// ── Redirect unauthenticated users to login ────────────────────────────
 if (!is_authenticated()) {
-    header('Location: /index.php');
+    header('Location: /login.php');
     exit;
 }
 
@@ -27,9 +29,34 @@ if (!is_authenticated()) {
 </head>
 <body>
 
-  <!-- Header -->
+  <!-- Header with Navigation -->
   <header id="dta-header">
-    <h1>Data-to-Art Studio</h1>
+    <div class="dta-header-title">
+      <h1>Data-to-Art Studio</h1>
+      <button class="dta-hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+    </div>
+    <nav class="dta-nav">
+      <a href="index.php">Home</a>
+      <?php if (is_authenticated()): ?>
+        <a href="studio.php" class="active">Studio</a>
+        <a href="data.php">Data</a>
+        <a href="portfolio.php">Portfolio</a>
+        <a href="#" onclick="event.preventDefault(); logout(); toggleMobileNav();" class="dta-nav-logout">Log Out</a>
+      <?php else: ?>
+        <a href="portfolio.php">Portfolio</a>
+      <?php endif; ?>
+    </nav>
+    <nav class="dta-mobile-nav">
+      <a href="index.php">Home</a>
+      <?php if (is_authenticated()): ?>
+        <a href="studio.php" class="active">Studio</a>
+        <a href="data.php">Data</a>
+        <a href="portfolio.php">Portfolio</a>
+        <a href="#" onclick="event.preventDefault(); logout(); toggleMobileNav();" class="dta-nav-logout">Log Out</a>
+      <?php else: ?>
+        <a href="portfolio.php">Portfolio</a>
+      <?php endif; ?>
+    </nav>
   </header>
 
   <!-- Error / Status Display -->
@@ -42,44 +69,18 @@ if (!is_authenticated()) {
     <section id="dta-canvas-region">
       <canvas id="dta-canvas"></canvas>
       <div id="dta-empty-state">
-        <p>Upload data or pick a dataset to begin</p>
+        <p>Pick a dataset to begin</p>
       </div>
     </section>
 
     <!-- Controls Sidebar -->
-    <aside id="dta-sidebar" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" data-authenticated="1">
-
-      <!-- Auth Section (collapsible) — top for visibility on authenticated-only page -->
-      <details id="dta-auth-section" data-username="<?php echo htmlspecialchars($_SESSION['username'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" data-authenticated="<?php echo isset($_SESSION['user_id']) ? '1' : '0'; ?>">
-        <summary><span id="dta-auth-summary">Account</span></summary>
-
-        <!-- Auth forms container (hidden via CSS when logged in) -->
-        <div id="dta-auth-forms-container">
-          <!-- Login form (registration is disabled) -->
-          <form id="dta-login-form" class="dta-auth-form">
-            <label for="dta-login-email">Email</label>
-            <input type="email" id="dta-login-email" name="email" required autocomplete="email">
-
-            <label for="dta-login-password">Password</label>
-            <input type="password" id="dta-login-password" name="password" required autocomplete="current-password">
-
-            <button type="submit">Log In</button>
-          </form>
-          <p id="dta-registration-notice" class="dta-auth-notice">Registration is disabled. Owner access only.</p>
-        </div><!-- /#dta-auth-forms-container -->
-
-        <div id="dta-auth-status"></div>
-        <button type="button" id="dta-logout-btn" class="dta-auth-logout-btn">Log Out</button>
-      </details>
+    <aside id="dta-sidebar">
 
       <!-- Top Control Bar -->
       <div class="dta-control-group">
-        <label for="dta-file-upload">Upload Data</label>
-        <input type="file" id="dta-file-upload" accept=".csv,.tsv,.xlsx">
-
         <label for="dta-dataset-select">Dataset</label>
         <select id="dta-dataset-select">
-          <option value="">— No datasets yet — Upload data to begin</option>
+          <option value="">— No datasets yet —</option>
         </select>
 
         <label for="dta-style-select">Art Style</label>
@@ -88,12 +89,24 @@ if (!is_authenticated()) {
         </select>
 
         <div class="dta-button-row">
-          <button id="dta-render-btn">Render</button>
           <button id="dta-export-btn">Export PNG</button>
         </div>
         <div class="dta-button-row">
           <button id="dta-save-artwork-btn">Save Artwork</button>
           <button id="dta-load-artwork-btn">Load Artwork</button>
+          <button id="dta-new-artwork-btn">New Artwork</button>
+        </div>
+
+        <!-- Mode Toggle -->
+        <div class="dta-mode-toggle" style="margin-top: 16px; padding: 8px; background: #1a1a1a; border: 1px solid #2a2a2a;">
+          <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+            <input type="radio" name="dimension-mode" id="dta-mode-manual" value="manual" checked style="margin: 0;">
+            <span style="font-size: 13px; color: #c9922a; font-weight: 600;">Manual Dimensions</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; margin-left: 24px;">
+            <input type="radio" name="dimension-mode" id="dta-mode-data" value="data" style="margin: 0;">
+            <span style="font-size: 13px; color: #8a8580;">Data-Driven</span>
+          </label>
         </div>
       </div>
 
@@ -124,6 +137,7 @@ if (!is_authenticated()) {
 
           <button id="dta-save-metadata-btn" class="dta-metadata-save-btn">Save Metadata</button>
           <div id="dta-save-status"></div>
+          <button id="dta-delete-artwork-btn" class="dta-delete-artwork-btn" style="display:none; margin-top: 12px; background: #1c1814; border: 2px solid #c9922a; color: #f0ece4; font-family: system-ui; font-size: 13px; padding: 8px 16px; cursor: pointer;">Delete Artwork</button>
         </div>
       </details>
 
@@ -133,16 +147,77 @@ if (!is_authenticated()) {
     </aside>
   </main>
 
+  <!-- Logout & Mobile Nav Functions -->
+  <script>
+    function logout() {
+      fetch('api/auth/logout.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.success) {
+          window.location.href = 'index.php';
+        } else {
+          alert('Logout failed: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(function(err) {
+        alert('Logout failed: ' + err.message);
+      });
+    }
+
+    function toggleMobileNav() {
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (mobileNav) {
+        mobileNav.classList.toggle('dta-visible');
+      }
+    }
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', function(event) {
+      var hamburger = document.querySelector('.dta-hamburger');
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (hamburger && mobileNav && mobileNav.classList.contains('dta-visible')) {
+        if (!hamburger.contains(event.target) && !mobileNav.contains(event.target)) {
+          mobileNav.classList.remove('dta-visible');
+        }
+      }
+    });
+
+    // Close mobile nav when clicking a link inside it
+    document.addEventListener('click', function(event) {
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (mobileNav && event.target.closest('a') && mobileNav.contains(event.target)) {
+        mobileNav.classList.remove('dta-visible');
+      }
+    });
+  </script>
+
   <!-- Scripts (load order is critical) -->
   <script src="src/canvas/styles/particleField.js"></script>
   <script src="src/canvas/styles/geometricGrid.js"></script>
   <script src="src/canvas/styles/flowingCurves.js"></script>
+  <script src="src/canvas/styles/radialWave.js"></script>
+  <script src="src/canvas/styles/fractalDust.js"></script>
+  <script src="src/canvas/styles/neuralFlow.js"></script>
+  <script src="src/canvas/styles/pixelMosaic.js"></script>
+  <script src="src/canvas/styles/voronoiCells.js"></script>
+  <script src="src/canvas/styles/radialSymmetry.js"></script>
+  <script src="src/canvas/styles/timeSeries.js"></script>
+  <script src="src/canvas/styles/heatMap.js"></script>
+  <script src="src/canvas/styles/scatterMatrix.js"></script>
+  <script src="src/canvas/styles/barCode.js"></script>
   <script src="src/canvas/artStyles.js"></script>
   <script src="src/canvas/renderer.js"></script>
   <script src="src/data/normalizer.js"></script>
   <script src="src/data/dataMapper.js"></script>
   <script src="src/controls/columnMapper.js"></script>
   <script src="src/controls/palettePicker.js"></script>
+  <script src="src/controls/visualDimensions.js"></script>
   <script src="src/controls/controls.js"></script>
   <script src="src/app.js"></script>
 

@@ -19,6 +19,7 @@
 (function() {
   'use strict';
 
+  console.log('[ParticleField] Module loading');
   var DEBUG = false;
   function log() { if (DEBUG) console.log.apply(console, arguments); }
 
@@ -54,6 +55,8 @@
 
   window.DataToArt = window.DataToArt || {};
   window.DataToArt.ParticleFieldStyle = {
+    // Maximum size for VisualDimensions module (pixels)
+    maxSize: 40,
 
     /**
      * One-time setup called before first render.

@@ -68,6 +68,8 @@
 
   window.DataToArt = window.DataToArt || {};
   window.DataToArt.FlowingCurvesStyle = {
+    // Maximum size for VisualDimensions module (pixels)
+    maxSize: 200,
 
     /**
      * One-time setup called before first render.

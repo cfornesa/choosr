@@ -18,6 +18,7 @@
 
   var DEBUG = false;
   function log() { if (DEBUG) console.log.apply(console, arguments); }
+  console.log('[ArtStyles] Module loading');
 
   var registry = {};
 
@@ -39,10 +40,52 @@
       registry['flowingCurves'] = window.DataToArt.FlowingCurvesStyle;
       log('ArtStyles: registered flowingCurves');
     }
+    // New Session 27 styles
+    if (window.DataToArt && window.DataToArt.RadialWaveStyle) {
+      registry['radialWave'] = window.DataToArt.RadialWaveStyle;
+      log('ArtStyles: registered radialWave');
+    }
+    if (window.DataToArt && window.DataToArt.FractalDustStyle) {
+      registry['fractalDust'] = window.DataToArt.FractalDustStyle;
+      log('ArtStyles: registered fractalDust');
+    }
+    if (window.DataToArt && window.DataToArt.NeuralFlowStyle) {
+      registry['neuralFlow'] = window.DataToArt.NeuralFlowStyle;
+      log('ArtStyles: registered neuralFlow');
+    }
+    if (window.DataToArt && window.DataToArt.PixelMosaicStyle) {
+      registry['pixelMosaic'] = window.DataToArt.PixelMosaicStyle;
+      log('ArtStyles: registered pixelMosaic');
+    }
+    if (window.DataToArt && window.DataToArt.VoronoiCellsStyle) {
+      registry['voronoiCells'] = window.DataToArt.VoronoiCellsStyle;
+      log('ArtStyles: registered voronoiCells');
+    }
+    if (window.DataToArt && window.DataToArt.RadialSymmetryStyle) {
+      registry['radialSymmetry'] = window.DataToArt.RadialSymmetryStyle;
+      log('ArtStyles: registered radialSymmetry');
+    }
+    if (window.DataToArt && window.DataToArt.TimeSeriesStyle) {
+      registry['timeSeries'] = window.DataToArt.TimeSeriesStyle;
+      log('ArtStyles: registered timeSeries');
+    }
+    if (window.DataToArt && window.DataToArt.HeatMapStyle) {
+      registry['heatMap'] = window.DataToArt.HeatMapStyle;
+      log('ArtStyles: registered heatMap');
+    }
+    if (window.DataToArt && window.DataToArt.ScatterMatrixStyle) {
+      registry['scatterMatrix'] = window.DataToArt.ScatterMatrixStyle;
+      log('ArtStyles: registered scatterMatrix');
+    }
+    if (window.DataToArt && window.DataToArt.BarCodeStyle) {
+      registry['barCode'] = window.DataToArt.BarCodeStyle;
+      log('ArtStyles: registered barCode');
+    }
   }
 
   // Auto-register at load time (existing behavior for forward compatibility)
   registerBuiltinStyles();
+  console.log('[ArtStyles] Auto-registration complete. Registered styles:', Object.keys(registry).join(', ') || 'none');
 
   window.DataToArt = window.DataToArt || {};
   window.DataToArt.ArtStyles = {

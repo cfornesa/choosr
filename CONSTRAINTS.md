@@ -131,3 +131,63 @@ data collection terms.
 **SCOPE:** Auth state detection in app.js, studio.php data attribute population.
 
 **SET:** 2026-04-24 · Session 17 — discovered during auth panel regression investigation.
+
+---
+
+### C-11 · Artwork Mode Persistence
+
+**CONSTRAINT:** Artwork state must persist both mode (manual/data-driven) and all visual dimensions (X, Y, Size, Opacity, Rotation, Color) for Manual mode artworks. The database schema must support storing and retrieving these values to ensure artwork fidelity across save/load cycles.
+
+**SCOPE:** Database schema (artworks table), save/load operations in src/app.js, Controls and VisualDimensions modules.
+
+**SET:** 2026-04-25 · Session 28 — Hybrid mode architecture requires explicit mode tracking. Without this constraint, Manual mode artworks lose their explicit dimension state.
+
+---
+
+### C-12 · Bidirectional Style Identification
+
+**CONSTRAINT:** Style identification must be bidirectional (styleKey ⇄ database ID) for save and load operations. The mapping between database art_style_id and JavaScript styleKey must be complete and consistent to ensure artworks load with the correct style regardless of which direction is used for lookup.
+
+**SCOPE:** src/app.js save and load functions, art_styles database table.
+
+**SET:** 2026-04-25 · Session 28 — Incomplete styleKeyForId map (only IDs 1-3) caused new style artworks (IDs 4-13) to load with wrong style.
+
+---
+
+### C-13 · Manual Mode Data Point Rendering
+
+**CONSTRAINT:** Manual mode must generate sufficient data points (minimum 30) for meaningful art style rendering. Single or very few data points result in minimal visual output that does not represent the intended aesthetic for any art style.
+
+**SCOPE:** src/canvas/renderer.js renderUsingExplicitDimensions method, all Manual mode rendering paths.
+
+**SET:** 2026-04-25 · Session 28 — Initial implementation generated only 1 data point, causing "very little rendering" output. Art styles expect multiple points to produce meaningful visualizations.
+
+---
+
+### C-14 · VisualDimensions Panel Visibility
+
+**CONSTRAINT:** VisualDimensions panel (with sliders for X, Y, Size, Opacity, Rotation, and Color swatch) must be visible and functional in Manual mode. This panel is the primary control interface for Manual mode and must not be hidden or missing.
+
+**SCOPE:** src/controls/controls.js (VisualDimensions integration, setMode), src/controls/visualDimensions.js (UI creation).
+
+**SET:** 2026-04-25 · Session 28 — VisualDimensions module existed but was not integrated into Controls, causing the panel to be missing from the Manual mode interface.
+
+---
+
+### C-15 · Mode Toggle Panel Visibility
+
+**CONSTRAINT:** Mode toggle must correctly show/hide appropriate control panels — VisualDimensions for Manual mode, ColumnMapper for Data-Driven mode. Only the relevant panel should be visible at any time.
+
+**SCOPE:** src/controls/controls.js setMode method, CSS display property management.
+
+**SET:** 2026-04-25 · Session 28 — Mode toggle UI existed in studio.php but lacked JavaScript support to show/hide panels based on mode selection.
+
+---
+
+### C-16 · DOM Element Null Safety
+
+**CONSTRAINT:** All DOM element references in shared JavaScript modules (app.js, controls.js) must handle missing elements gracefully with null checks. Pages like studio.php and index.php have different DOM structures but share the same JavaScript files.
+
+**SCOPE:** src/app.js (DOM reference event listeners), src/controls/controls.js (panel display logic).
+
+**SET:** 2026-04-25 · Session 28 — App.js referenced elements like dta-file-upload, dta-render-btn, dta-logout-btn that don't exist in studio.php, causing ReferenceError and preventing initialization.

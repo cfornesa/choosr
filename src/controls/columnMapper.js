@@ -173,7 +173,7 @@
 
       // Create header
       var header = document.createElement('h3');
-      header.textContent = 'Map Data to Visual Dimensions';
+      header.textContent = 'Visual Dimensions';
       applyStyles(header, STYLES.header);
       containerEl.appendChild(header);
 
@@ -298,6 +298,7 @@
   // ─── Expose on Global Namespace ────────────────────────────────────────────
 
   window.DataToArt = window.DataToArt || {};
+  console.log('[ColumnMapper] Defining window.DataToArt.ColumnMapper');
   window.DataToArt.ColumnMapper = ColumnMapper;
 
   log('ColumnMapper module loaded');

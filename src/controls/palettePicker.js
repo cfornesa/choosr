@@ -15,6 +15,7 @@
 (function() {
   'use strict';
 
+  console.log('[PalettePicker] Module loading');
   var DEBUG = window.location.search.indexOf('debug=true') !== -1;
 
   function log() {

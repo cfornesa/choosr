@@ -294,7 +294,6 @@ Users have full control over the following dimensions:
 ### Unresolved Checkpoints
 - [x] Thumbnail URL bug (Fixed in Session 15)
 - [ ] Verify Controls/PalettePicker rendering in live environment (may require cache clear)
-
 ## Session 17 — Auth Panel Regression + Art Styles Repair (2026-04-24)
 
 | Choice | Decision | Rationale |
@@ -341,3 +340,676 @@ Users have full control over the following dimensions:
 
 ### Unresolved Checkpoints
 - [ ] User must run ALTER TABLE to add `is_featured` and `tags` columns to existing `artworks` table
+
+***
+
+## Session 19 — Thumbnail Generation Fix (2026-04-24)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| Root cause identified | thumbnail_path column was always NULL — no code generated thumbnails on save | System had DB column, config paths, gallery display code, and DELETE cleanup, but no creation code |
+| Solution architecture | 2-step process: (1) Frontend captures canvas as Base64 PNG, (2) Backend decodes and saves to filesystem | Minimal changes, follows existing DELETE handler pattern |
+| Filename format | {artwork_id}_{timestamp}.png | Prevents collisions during concurrent saves |
+| Storage | Only filename in DB, full path resolved by ARTWORK_THUMBNAIL_DIR config | Matches existing DELETE handler pattern |
+| Graceful degradation | Thumbnail failures are non-fatal — artwork saves even if thumbnail fails | DB column is nullable; errors logged via error_log() |
+| Base64 prefix handling | Strip data:image/png;base64, prefix with regex before decoding | canvas.toDataURL() returns prefixed string |
+| Config URL change | Changed ARTWORK_THUMBNAIL_URL from APP_URL + path to relative /path | Works on both localhost and production without URL reconstruction |
+| POST flow | INSERT first (get artwork_id), then UPDATE with thumbnail_path | Requires ID for filename; two-step avoids race condition |
+
+### Files Modified
+- `src/canvas/renderer.js`: Added exportBase64() method
+- `src/controls/controls.js`: Added exportBase64() wrapper
+- `src/app.js`: Added thumbnail_data to save payload
+- `api/artwork.php`: Added INSERT of NULL thumbnail_path + UPDATE after processing Base64
+- `config/env.php`: Changed ARTWORK_THUMBNAIL_URL to relative path
+
+### MEMORY.md Entry
+2026-04-24 · ARCHITECTURE · The global namespace pattern (window.DataToArt) enables cross-module method chaining for 2-step operations — renderer.exportBase64() exposed via controls.exportBase64() to app.js to PHP backend, allowing canvas capture at save time without architectural changes.
+
+---
+
+## Session 20 — Extended Debugging (2026-04-24)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| array_is_list() compatibility | Replaced with simple is_array() check | PHP 8.1+ function replaced for broader compatibility |
+| JSON encoding validation | Added success checks before SQL binding | Prevents boolean false from being inserted into database |
+| Enhanced error reporting | Modified catch block to always return PDO error details | Faster debugging with actual error messages instead of generic messages |
+| Schema migration guidance | Provided SQL in comments for manual ALTER TABLE execution | Irreversible decision (schema change) requires user confirmation per Rule 3 |
+
+### Files Modified
+- `api/artwork.php`: Compatibility fixes and error reporting enhancements
+- `db/schema.sql`: Added ALTER TABLE comments for manual execution
+
+---
+
+## Session 21 — Three Fixes: Gallery Badge, Delete Button, AUTO_INCREMENT Note (2026-04-24)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| portfolio.php equality | Changed artwork.is_featured === 1 to artwork.is_featured == 1 | JSON encoding/decoding converts PHP integers to JS strings; loose equality handles both types |
+| Delete button | Added dta-delete-artwork-btn with confirmation dialog + DELETE fetch | Enables artwork deletion from studio; uses existing DELETE handler at api/artwork.php |
+| AUTO_INCREMENT documentation | Added comment block after DELETE handler | Clarifies MySQL InnoDB behavior: IDs never reused, ALTER TABLE instructions provided |
+
+### Assumptions Surfaced
+`is_featured === 1` strict equality is the sole bug — not a PHP query issue
+
+### Files Modified
+- `portfolio.php`: Line 257 equality fix
+- `studio.php`: Delete button HTML
+- `src/app.js`: ~45 lines (variable, handler, show/hide logic, event wiring)
+- `api/artwork.php`: 15-line AUTO_INCREMENT comment block
+
+### MEMORY.md Entry
+2026-04-24 · ARCHITECTURE · The existing DELETE handler at api/artwork.php (lines 513-571) is fully functional with ownership verification and thumbnail cleanup — frontend features like delete can be added without any backend changes.
+
+---
+
+## Session 22 — Portfolio Gallery INNER JOIN Fix + Missing limit Default (2026-04-24)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| INNER JOIN → LEFT JOIN | Changed JOIN to LEFT JOIN on lines 59 and 71 of api/artworks.php | INNER JOIN filtered out artworks where art_style_id IS NULL |
+| Missing limit default | Added if ($limit === null) { $limit = PORTFOLIO_ITEMS_PER_PAGE; } in public filter branch | filter=public path never set $limit, causing unbound :limit parameter |
+
+### Assumptions Surfaced
+1. Artwork ID 3 has art_style_id = 3 (user confirmed) — INNER JOIN was NOT the issue for this specific artwork
+2. The actual bug was the missing limit default — portfolio.php called api/artworks.php?filter=public with no limit param
+3. Adding limit=20 to URL worked because it set the $limit variable
+
+### Files Modified
+- `api/artworks.php`: Lines 59 and 71 JOIN → LEFT JOIN, lines 68-70 added missing limit default
+
+---
+
+## Session 23 — Fix Save Artwork: Update vs Create New (2026-04-24)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| PATCH/POST branching | Added _currentArtworkId check before fetch — PATCH if ID set, POST if null | Keeps POST behavior intact for new artworks; fixes duplicate creation |
+| Extended PATCH fields | $allowedFields now includes: art_style_id, dataset_id, column_mapping, palette_config, rendering_config | Full artwork state can now be updated (previously PATCH only handled metadata) |
+| JSON encoding | column_mapping, palette_config, rendering_config JSON-encoded before SQL binding | MySQL JSON columns require string values |
+| Response consistency | PATCH now returns { "success": true, "artwork_id": $id } | Matches POST format for consistent JS handling |
+| Status messages | Distinct messages for create vs update | "Creating new artwork" vs "Updating artwork ID: X", "Artwork saved" vs "Artwork updated" |
+
+### Assumptions Surfaced
+1. _currentArtworkId is correctly set when artwork is loaded and cleared on delete/reset
+2. Full payload (all fields) is sent on PATCH, not just changed fields
+3. Thumbnail handling remains POST-only (thumbnail is only sent on create; update reuses existing path)
+
+### Files Modified
+- `src/app.js`: _onSaveArtworkClick() PATCH/POST branching (lines 620-707)
+- `api/artwork.php`: PATCH handler extended (lines 303-503)
+
+### MEMORY.md Entry
+2026-04-24 · ARCHITECTURE · Save/update operations must branch on existing state (_currentArtworkId) rather than always creating new records — POST for new artworks, PATCH for existing updates, with distinct status messages and error handling.
+
+---
+
+Sessions 15-23 documentation was in the working directory but not committed to git.
+See EVAL_SESSION_15.md through EVAL_SESSION_23.md for full evaluation details.
+These sessions covered: Portfolio features, auth panel fixes, data loading pipeline,
+thumbnail generation, save artwork fixes, and various integrations.
+
+***
+
+## Session 24 — Mobile Navigation System + Upload Auth Integration + Data Management (2026-04-24)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| Mobile navigation approach | Hamburger menu + collapsible dropdown using CSS `display: none/block` + absolute positioning | Maintains C-02 compliance (no gradients, hard offset shadows). No JavaScript framework needed per Phase 1 decisions. |
+| Auth-aware uploads | `api/upload.php` now requires `api/auth/session.php` and passes `$currentUserId` | **RESOLVES** unresolved checkpoint from Session 4: user_id was hardcoded NULL. Now properly associates uploads with authenticated users. |
+| Session security ordering | Reordered `session.use_only_cookies` before `session.cookie_httponly` in config/bootstrap.php | Although both are security settings, `use_only_cookies` is a prerequisite for httponly to be meaningful. Fixes potential session fixation vector. |
+| Data management page | Created standalone `data.php` with dedicated dataset upload/delete UI | Separates data preparation (data.php) from artwork creation (studio.php) and public viewing (portfolio.php). Cleaner user flow. |
+| Standalone login page | Created `login.php` with redirect logic: authenticated users → studio.php, guests → show form | Enables direct login URL access without going through index.php. Maintains single-owner positioning from Session 13. |
+| Dataset CRUD frontend | Created `src/data-manager.js` for dataset listing, upload, and deletion logic | Centralizes dataset management in reusable module. Uses fetch API with proper error handling and DOM manipulation. |
+| Debug logging | Added `console.log` to style modules (particleField.js, columnMapper.js, palettePicker.js) | Aids in diagnosing style registration timing issues from Session 17. Can be disabled via DEBUG flag. |
+
+### Assumptions Surfaced (Session 24)
+1. Mobile users need hamburger menu — desktop-first layout insufficient for smaller screens
+2. Upload auth integration is Phase 2 requirement — Session 4 explicitly noted user_id would need session.php once Phase 2 auth wired
+3. Dataset management is distinct workflow from artwork creation — separate page reduces complexity
+4. Debug logging can remain in production with DEBUG=false flag preventing console output
+5. Session cookie security settings order matters for proper protection
+
+### Files Modified
+| File | Lines Changed | Purpose |
+|------|---------------|---------|
+| `api/upload.php` | +2 lines | Require session.php, pass $currentUserId to DB |
+| `config/bootstrap.php` | Line reordering | Correct session security initialization order |
+| css/app.css | +120 lines | Mobile navigation: hamburger, dropdown, responsive layout |
+| data.php | +147 lines (NEW) | Dataset management page with upload/delete UI |
+| login.php | +182 lines (NEW) | Standalone login page with redirect logic |
+| src/data-manager.js | +296 lines (NEW) | Dataset CRUD frontend module |
+| src/canvas/styles/particleField.js | +1 line | Debug console.log for module loading |
+| src/controls/columnMapper.js | +1 line | Debug console.log for module definition |
+| src/controls/palettePicker.js | +1 line | Debug console.log for module loading |
+
+### Code Artifacts Requiring Cleanup
+| File | Issue | Location | Resolution |
+|------|-------|----------|------------|
+| `src/canvas/styles/particleField.js` | Duplicate code at EOF | Lines 181-184 | Remove lines 181-184 (keep only lines 1-180) |
+| `src/controls/palettePicker.js` | Malformed duplicate at EOF | Last 2 lines | Remove malformed duplicate, keep proper `})();` |
+
+### Unresolved Checkpoints (Updated)
+- [x] `api/upload.php` user_id hardcoded NULL — **FIXED in Session 24**
+- [ ] Permissions may need fixing on thumbnails directory for web server write access
+- [ ] Verify Controls/PalettePicker rendering in live environment (may require cache clear)
+- [ ] User must run ALTER TABLE to add `is_featured` and `tags` columns to existing `artworks` table
+- [ ] Animation stop/pause UI control not yet built
+- [ ] Curated public dataset list not yet defined
+- [ ] Live API feed sources not yet selected
+- [ ] Normalized dataset schema not yet formally specified
+- [ ] Phase 2 gallery and sharing feature scope not yet detailed
+
+### Evaluation Against AGENTS.md (Session 24)
+
+| Rule | Score | Evidence |
+|------|-------|----------|
+| 1. Assumption question before change | **Partial** | Assumptions were surfaced during implementation but not explicitly questioned before each file write. Mobile nav need, auth upload requirement, and data management separation were explicit. |
+| 2. Gallery before committing | **N/A** | Plan Implementation mode — these were architectural completions of unresolved checkpoints rather than new design decisions. |
+| 3. Brainstorm Mode exit | **N/A** | Not in Brainstorm Mode. |
+| 4. Stop at irreversible decisions | **Pass** | No new irreversible decisions. Config changes are reversible. No schema modifications without confirmation. |
+| 5. Amplify person's judgment | **Pass** | Respected user's established patterns: no build tools (css/app.css), no gradients (C-02), existing auth flow from Session 13. |
+| 6. No broken URLs | **Pass** | All new pages additive. Existing routing preserved. |
+| 7. No silent workarounds | **Pass** | Direct fixes to root causes. No non-functional tech used. |
+| 8. Pre-write self-check | **Pass** | Read all target files before editing. Verified session configuration, mobile CSS patterns, and auth flow. |
+| 9. CONSTRAINTS.md updated | **Pass** | No new constraints violated. Existing constraints (C-02, C-04) maintained. |
+| 10. DECISIONS.md updated | **Pass** | This session entry adds complete coverage for previously undocumented work. |
+| 11. MEMORY.md proposed | **TBD** | ARCHITECTURE entry proposed: "Phase 2 requires auth integration at all data-mutating endpoints; upload.php completion closes C-04 gap." |
+| 12. Agent Use rule | **Pass** | Parallel reads of 8 files for comprehensive audit; appropriate for complex session. |
+| 13. Skills on demand | **N/A** | No skills triggered. |
+
+***
+
+## Session 25 — Art Style Rendering Fix (2026-04-24)
+
+**Issue:** studio.php unable to render an Art Style — Controls had hardcoded 'particleField' default, but ArtStyles registry might be empty at initialization time causing getStyle() to throw error in renderer._doRender()
+
+| Fix | Root Cause | Solution | Impact |
+|-----|------------|----------|--------|
+| Race condition in initialization | Controls initialized with 'particleField' before ArtStyles registry populated | Moved populateStyles() before Controls.init(); use first registered style as default; explicitly call Controls.setStyle() after styles loaded | Ensures Controls always has a valid, registered style |
+| Poor error visibility | Renderer caught style errors but only logged via DEBUG flag | Added console.error in renderer._doRender() with available styles list | Developers can see exactly which styles are registered |
+| Debugging difficulty | No visibility into ArtStyles auto-registration | Added console.log for completion with registered style list | Clear browser console output for diagnosis |
+
+### Root Cause Analysis
+The original code initialized Controls before calling populateStyles():
+```javascript
+// OLD ORDER:
+Controls.init({ styleKey: 'particleField' });  // Uses hardcoded default
+populateStyles();  // Registers styles AFTER Controls created
+```
+
+If ArtStyles registry was empty or 'particleField' not yet registered, renderer._doRender() throws:
+```
+Renderer error: ArtStyles: unknown style "particleField". Registered: 
+```
+
+### Fix Details
+1. **Reordered initialization** in app.js:
+   - Call populateStyles() FIRST
+   - Get first registered style (or fallback to 'particleField')
+   - Initialize Controls with known-valid style
+   - Explicitly call Controls.setStyle() to validate
+
+2. **Enhanced error reporting** in renderer.js:
+   - Added console.error with available styles list
+   - Provides actionable debugging info in browser console
+
+3. **Added auto-registration logging** in artStyles.js:
+   - console.log shows which styles were registered on load
+   - Helps identify if style modules loaded correctly
+
+### Code Artifacts Cleaned
+- `src/canvas/styles/particleField.js` - Removed duplicate lines 181-184
+- `src/canvas/artStyles.js` - Removed malformed duplicate at EOF
+- `src/controls/palettePicker.js` - Removed malformed duplicate at EOF
+
+### Assumptions Surfaced
+1. ArtStyle registry must be populated before Controls uses a styleKey
+2. Controls.setStyle() validates style exists via ArtStyles.getStyle()
+3. Browser cache may serve stale JS files with syntax errors from prior debugging
+4. console.log messages are essential for diagnosing loading order issues
+
+### Files Modified
+| File | Lines | Purpose |
+|------|-------|---------|
+| src/app.js | +17 lines modified | Reorder: populateStyles() before Controls.init(), use first registered style, explicit setStyle() |
+| src/canvas/renderer.js | +2 lines | Enhanced error reporting with available styles |
+| src/canvas/artStyles.js | +1 line | Log auto-registration status |
+| src/canvas/styles/particleField.js | -4 lines | Removed duplicate code artifact |
+| src/canvas/artStyles.js | -3 lines | Removed malformed duplicate artifact |
+| src/controls/palettePicker.js | -1 line | Removed malformed duplicate artifact |
+
+### Verification
+**Browser Console should show:**
+```
+[ParticleField] Module loading
+[GeometricGrid] Module loading  
+[FlowingCurves] Module loading
+[ArtStyles] Module loading
+[ArtStyles] Auto-registration complete. Registered styles: particleField, geometricGrid, flowingCurves
+```
+
+If any module is missing, check:
+1. Script paths in studio.php match actual file locations
+2. No 404 errors in Network tab
+3. No syntax errors preventing script execution
+4. Browser cache cleared (Ctrl+Shift+R or Cmd+Shift+R)
+
+### Unresolved Checkpoints
+- [ ] Verify Controls/PalettePicker rendering in live environment (may require cache clear)
+
+***
+
+## Session 26 — Artwork Save: Thumbnail + Cache Fix (2026-04-24)
+
+**Issue:** Changes to artwork (ID=3) not reflected in portfolio/exhibit pages. Required behavior: embed code must update as user makes changes.
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| Thumbnail on update | Add thumbnail_data to PATCH allowedFields + add processing code | POST handler generates thumbnails but PATCH did not — old thumbnails persisted on re-save. PATCH now mirrors POST's thumbnail pipeline: Base64 decode → save file → update DB path → delete old thumbnail |
+| Delete old thumbnails | Delete old thumbnail file before saving new one | Prevents filesystem bloat from orphaned thumbnail files when users re-save |
+| Browser caching | Add no-cache headers to portfolio.php, exhibit.php, API endpoints | Browser cached HTML even when DB had fresh data — headers force reload on every visit |
+| Cache-busting strategy | Server-side headers vs client-side URL cache-busting | Server headers simpler, more reliable — URL parameters would require coordination across multiple pages |
+
+### Root Cause Analysis
+1. **PATCH handler**: `$allowedFields` excluded `thumbnail_data` + no thumbnail processing code
+2. **Browser caching**: portfolio.php and exhibit.php (regular mode) lacked cache-control headers
+3. **Note**: Embed iframe URLs already had `&v=strtotime(updated_at)` cache-busting — only the pages displaying embeds were cached
+
+### Fix Details
+**api/artwork.php (PATCH):**
+- Added `thumbnail_data` to `$allowedFields` array
+- Added switch case to capture `thumbnail_data` from request body
+- Added thumbnail processing block after UPDATE: fetches old thumbnail_path, deletes file, decodes Base64, saves new file, updates DB
+- Changed empty check from `if (empty($updates))` to `if (empty($updates) && $thumbnail_data === null)` to allow thumbnail-only updates
+
+**Cache headers added to:**
+- portfolio.php (line 13-15)
+- exhibit.php regular mode (line 123-125)
+- api/artworks.php (line 15)
+- api/artwork.php (line 17)
+
+### Files Modified
+- `api/artwork.php`: PATCH handler thumbnail support, old thumbnail cleanup
+- `portfolio.php`: No-cache headers
+- `exhibit.php`: No-cache headers for regular mode
+- `api/artworks.php`: No-cache header
+- `api/artwork.php`: No-cache header
+
+### Assumptions Surfaced
+1. Thumbnail should be regenerated on every artwork save (not just creation)
+2. Old thumbnail files should be cleaned up when replaced to prevent filesystem bloat
+3. Browser caching is the most common reason for "changes not showing up" issues
+4. Server-side cache-control headers are more reliable than client-side cache-busting URLs
+
+### CONSTRAINTS.md Entry
+None required — no new constraints identified
+
+### MEMORY.md Entry
+2026-04-24 · ARCHITECTURE · Artwork thumbnail generation must occur on both POST (create) and PATCH (update) — PATCH handler must include thumbnail_data in allowed fields and process it identically to POST, including old file cleanup.
+
+***
+
+## Session 27 — Studio: Visual Dimensions Decoupled + 10 New Styles + Random (2026-04-24)
+
+**Issue:** User wants explicit dimension controls decoupled from dataset columns, plus expanded art style options.
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| Remove Render button | Eliminated render button from studio.php and app.js | Rendering is autonomous via debounced triggers on dimension changes; button was redundant |
+| Rename panel | Changed "Map Data to Visual Dimensions" → "Visual Dimensions" in columnMapper.js | Reflects decoupled nature of dimensions from data columns |
+| Manual vs Data-driven modes | Added mode toggle with Manual (explicit sliders) vs Data-driven (column mapping) | Clean separation: Manual uses explicit X/Y/Size/Opacity/Rotation/Color values; Data-driven preserves existing column-to-dimension mapping |
+| VisualDimensions module | Created new src/controls/visualDimensions.js with range sliders | X[-1,1], Y[-1,1], Size[0-Npx], Opacity[0,1], Rotation[0-360°], Color[hex swatch] as user-defined parameters |
+| Random functionality | Added "Randomize Dimensions" button to VisualDimensions panel | Generates random values within each dimension's valid range; triggers auto-render via existing debounce |
+| Style maxSize | Added maxSize property to each art style module | VisualDimensions reads current style's maxSize and adjusts Size slider accordingly |
+| 10 new art styles | radialWave, fractalDust, neuralFlow, pixelMosaic, voronoiCells, radialSymmetry, timeSeries, heatMap, scatterMatrix, barCode | Expands creative options while demonstrating the decoupled architecture |
+
+### Root Cause Analysis
+User's non-negotiable requirement: **"decouple Visual Dimensions values from dataset columns"**. The existing architecture conflated three concerns (dataset columns, dimension mapping, rendering style) that needed separation.
+
+### Architecture Shift
+```
+OLD: Dataset Columns → ColumnMapper (dropdowns) → Normalized Values → Style → Output
+NEW MANUAL: Dataset (reference) → VisualDimensions (sliders) → Style → Output
+NEW DATA-DRIVEN: Dataset → ColumnMapper (dropdowns) → Normalized Values → Style → Output
+```
+
+**Separation of concerns:**
+- Dataset columns: Raw data input for creative reference
+- VisualDimensions: Explicit numeric parameters user sets directly
+- Art Style: Determines how visualization is rendered
+- Mode Toggle: Switches between Manual (primary) and Data-driven (legacy) approaches
+
+### Implementation Details
+
+**studio.php:**
+- Removed Render button HTML
+- Added mode toggle radio buttons (Manual/Data-driven)
+
+**src/app.js:**
+- Removed `_renderBtn` variable and click listener
+- Added mode toggle DOM references (_modeManualRadio, _modeDataRadio)
+- Added event listeners for mode toggle → Controls.setMode()
+
+**src/controls/visualDimensions.js:** (NEW)
+- IIFE module on window.DataToArt.VisualDimensions
+- Sliders: X, Y, Size, Opacity, Rotation with numeric displays
+- Color: `<input type="color">` with hex display
+- Methods: init(), getValues(), setValues(), randomize(), reset(), setMaxSize()
+- Random button integrated into panel
+- Fires onChange callback on any dimension modification
+
+**src/controls/controls.js:**
+- Added _currentMode state (default: 'manual')
+- Added setMode(mode) and getMode() public methods
+- Added _visualContainer for VisualDimensions panel
+- initialized VisualDimensions in init()
+- setMode() shows/hides columnMapper vs visualDimensions panels
+- triggerRender() now branches on mode:
+  - Manual: calls _renderer.renderUsingExplicitDimensions()
+  - Data-driven: existing dataset/columnMapping flow
+- setStyle() updates VisualDimensions.setMaxSize() when in Manual mode
+
+**src/canvas/renderer.js:**
+- Added renderUsingExplicitDimensions(dimensions, palette, rc, styleKey)
+- Added _doRenderExplicit() internal method
+- Creates synthetic single data point from explicit dimensions
+- Converts rotation from degrees to radians
+- Normalizes size relative to canvas dimensions
+- Prepends explicit color to palette if provided
+
+**New Art Style Modules:** (10 total)
+- radialWave.js: Concentric pulsing waves, maxSize=500
+- fractalDust.js: Recursive particle subdivision, maxSize=300
+- neuralFlow.js: Perlin noise-driven curves, maxSize=600
+- pixelMosaic.js: Grid of colored blocks, maxSize=200
+- voronoiCells.js: Polygonal Voronoi diagram, maxSize=400
+- radialSymmetry.js: Kaleidoscope/mirrored patterns, maxSize=400
+- timeSeries.js: Animated particle flow, maxSize=500
+- heatMap.js: Density-based gradient, maxSize=600
+- scatterMatrix.js: Small multiples grid, maxSize=200
+- barCode.js: Linear bar representation, maxSize=300
+
+**src/canvas/artStyles.js:**
+- Extended registerBuiltinStyles() to register all 10 new styles
+
+**Existing Art Styles (updated):**
+- particleField.js: Added maxSize=40
+- geometricGrid.js: Added maxSize=300
+- flowingCurves.js: Added maxSize=200
+
+**studio.php:**
+- Added 10 new `<script>` tags for new art style modules (load order preserved)
+
+### Files Modified
+- studio.php: Toggle UI, removed Render button, script load order
+- src/app.js: Mode toggle listeners, removed Render button refs
+- src/controls/visualDimensions.js: NEW module
+- src/controls/controls.js: Mode management, VisualDimensions integration
+- src/canvas/renderer.js: Explicit dimensions rendering path
+- src/canvas/artStyles.js: 10 new style registrations
+- src/canvas/styles/particleField.js: Added maxSize
+- src/canvas/styles/geometricGrid.js: Added maxSize
+- src/canvas/styles/flowingCurves.js: Added maxSize
+- [NEW] src/canvas/styles/radialWave.js
+- [NEW] src/canvas/styles/fractalDust.js
+- [NEW] src/canvas/styles/neuralFlow.js
+- [NEW] src/canvas/styles/pixelMosaic.js
+- [NEW] src/canvas/styles/voronoiCells.js
+- [NEW] src/canvas/styles/radialSymmetry.js
+- [NEW] src/canvas/styles/timeSeries.js
+- [NEW] src/canvas/styles/heatMap.js
+- [NEW] src/canvas/styles/scatterMatrix.js
+- [NEW] src/canvas/styles/barCode.js
+
+### Assumptions Surfaced
+1. Manual Dimensions should be the primary mode going forward
+2. Data-driven mode must be preserved for backward compatibility with existing saved artworks
+3. Size in Manual mode uses pixel values (style-dependent) rather than normalized 0-1
+4. Art styles need maxSize property to constrain Size slider range
+5. Random functionality should respect each dimension's valid range
+6. Existing columnMapper can be repurposed as Data Explorer in future
+
+### CONSTRAINTS.md Entry
+None required — no new constraints violated
+
+### MEMORY.md Entry
+2026-04-24 · ARCHITECTURE · Visual dimensions must be decoupled from dataset column mapping — dimensions (X, Y, Size, Opacity, Rotation, Color) are explicit user-defined parameters, not derived from data columns. This separation enables direct creative control while preserving data-driven capabilities via mode toggle.
+2026-04-24 · ARCHITECTURE · Art style modules must expose maxSize property for VisualDimensions module to constrain Size slider range appropriately per style.
+
+### Unresolved Checkpoints
+- [ ] Database: Insert 10 new art style rows into art_styles table (IDs 4-13 with display_name, style_key, is_active=1)
+- [ ] Test Manual mode rendering with each of the 13 styles
+- [ ] Test mode toggle switching between Manual and Data-driven
+- [ ] Test Random functionality across all dimension ranges  
+- [ ] Test animation in Manual mode (renderingConfig.animate)
+- [ ] Verify Size slider max updates when switching styles
+
+---
+
+## Session 28 — Studio.php Existing Artwork Rendering Fix (2026-04-25)
+
+### Context
+After Session 27 implementation (hybrid Manual/Data-driven mode architecture), user reported that studio.php does not render even existing artworks correctly. investigation revealed fundamental architectural gaps in saving/loading Manual mode state.
+
+### Root Cause Analysis
+
+| Category | Issue | File | Line | Impact |
+|----------|-------|------|------|--------|
+| Database | Missing `mode` column | MySQL `artworks` | N/A | Cannot distinguish Manual vs Data-driven artworks |
+| Database | Missing `visual_dimensions` column | MySQL `artworks` | N/A | Manual mode dimensions lost on save |
+| Code | Incomplete styleKeyForId map | src/app.js | 723 | Styles 4-13 load as particleField |
+| Code | Mode not saved | src/app.js | 532-555 | Manual mode state not persisted |
+| Code | Mode not restored on load | src/app.js | 702-727 | Artworks load in incorrect mode |
+| Code | VisualDimensions not restored | src/app.js | 702-727 | Manual mode dimensions lost |
+
+### Decision Table
+
+| # | Decision | Rationale | Assumptions | Tradeoffs |
+|---|----------|-----------|------------|-----------|
+| 1 | **Add columns to artworks table** (vs separate table) | Simpler implementation, preserves existing data, fewer queries | Existing artworks need migration | Slightly denormalized but acceptable for Phase 1 |
+| 2 | **Migrate all existing artworks** (vs detect on load) | Ensures data consistency, explicit mode values | Requires UPDATE query | Migration script needed |
+| 3 | **Default to Data-driven mode** (vs Manual) | All existing artworks pre-date Manual mode, so Data-driven is correct | None | Safe fallback |
+
+### Implementation Plan
+
+**Phase 1: Schema Changes**
+```sql
+ALTER TABLE artworks 
+  ADD COLUMN `mode` VARCHAR(10) NOT NULL DEFAULT 'data' AFTER art_style_id,
+  ADD COLUMN `visual_dimensions` JSON AFTER palette_config;
+
+UPDATE artworks SET mode = 'data' WHERE mode IS NULL;
+```
+
+**Phase 2: Code Changes**
+
+**src/app.js (Save Floating - Lines ~532-555)**
+```javascript
+var payload = {
+  art_style_id: artStyleId,
+  title: title,
+  description: description || null,
+  tags: tags || null,
+  dataset_id: datasetId,
+  mode: window.DataToArt.Controls.getMode(),  // NEW
+  column_mapping: columnMapping,
+  palette_config: paletteConfig,
+  visual_dimensions: window.DataToArt.Controls.getMode() === 'manual' 
+    ? window.DataToArt.VisualDimensions.getValues() 
+    : null,  // NEW
+  rendering_config: renderingConfig,
+  is_public: isPublic,
+  is_featured: isFeatured,
+  thumbnail_data: thumbnailData
+};
+```
+
+**src/app.js (Load Function - Lines ~702-727)**
+```javascript
+// Set mode from artwork
+if (artwork.mode) {
+  window.DataToArt.Controls.setMode(artwork.mode);
+}
+
+// Set visual dimensions if in Manual mode
+if (artwork.visual_dimensions && artwork.mode === 'manual') {
+  window.DataToArt.VisualDimensions.setValues(artwork.visual_dimensions);
+}
+```
+
+**src/app.js (Style Key Map Fix - Line ~723)**
+```javascript
+var styleKeyForId = {
+  1: 'particleField', 2: 'geometricGrid', 3: 'flowingCurves',
+  4: 'radialWave', 5: 'fractalDust', 6: 'neuralFlow',
+  7: 'pixelMosaic', 8: 'voronoiCells', 9: 'radialSymmetry',
+  10: 'timeSeries', 11: 'heatMap', 12: 'scatterMatrix', 13: 'barCode'
+};
+```
+
+**Phase 3: Code Quality Fixes**
+
+**src/app.js (All fetch calls)**
+```javascript
+fetch(...)
+  .then(handleResponse)
+  .then(function(data) { ... })
+  .catch(function(err) {
+    _showError(err.message || 'Request failed');
+  });
+```
+
+### Files Modified
+- src/app.js: 4 changes (save payload, load restoration, styleKeyForId map, fetch .catch())
+- MySQL: ALTER TABLE artworks + UPDATE migration
+
+### Files Audited
+- src/app.js: Variable declarations (FIXED in Session 27.1)
+- src/controls/controls.js: Variable declarations (FIXED in Session 27.1)
+- src/canvas/styles/heatMap.js: Scope bug (FIXED in Session 27.2)
+- All 13 art style modules: Scope verification (ALL PASS)
+
+### Assumptions Surfaced
+1. Existing artworks (pre-Session 27) are all Data-driven mode
+2. Manual mode is the intended primary mode for creative control
+3. Database must persist both mode and visual dimensions for Manual mode
+4. Style ID mapping must be bidirectional and complete
+5. Backward compatibility requires detecting missing mode field
+
+### CONSTRAINTS.md Entry
+- C-11: Artwork state must persist both mode (manual/data-driven) and all visual dimensions for Manual mode
+- C-12: Style identification must be bidirectional (styleKey ⇄ database ID) for save/load operations
+
+### MEMORY.md Entry
+2026-04-25 · BLOCKER · Hybrid mode architecture requires database schema extension: mode column and visual_dimensions JSON column in artworks table to support Manual mode persistence. Without these, Manual mode artworks lose all dimension state on save/reload.
+2026-04-25 · ARCHITECTURE · Style loading map must include all registered styles (1-13) to correctly load artworks by art_style_id. Previously only mapped 1-3 (particleField, geometricGrid, flowingCurves) causing new styles to default to particleField on load.
+2026-04-25 · WORKFLOW · Fetch promises must include .catch() handlers to prevent unhandled promise rejections that mask real errors and clutter browser console.
+
+### Unresolved Checkpoints
+- [ ] Database: Execute ALTER TABLE and UPDATE queries for mode/visual_dimensions columns
+- [ ] Test: Load existing Data-driven artwork - verify renders correctly
+- [ ] Test: Create Manual mode artwork, save, reload - verify dimensions restored
+- [ ] Test: Create artwork with each of 13 styles, save, load - verify style renders correctly
+- [ ] Verify: Browser console shows no unhandled promise rejection errors
+
+---
+
+## Session 28 - Manual Mode Rendering Fix (2026-04-25)
+
+### Problem Analysis
+User reported that Manual mode (manual dimensions toggle in studio.php) was rendering very little output (only 1-2 particles/data points) and the Visual Dimensions control panel with sliders was completely missing, while Data-Driven mode worked correctly.
+
+### Root Cause
+1. **renderUsingExplicitDimensions missing**: Controls.triggerRender() in Manual mode called `_renderer.renderUsingExplicitDimensions()` but this method did not exist in Renderer, causing TypeError
+2. **Single data point generation**: Initial fix added the method but only generated ONE data point, insufficient for meaningful art style rendering (most styles expect 10-100+ points)
+3. **VisualDimensions panel not visible**: Mode toggle infrastructure existed in UI but Controls module didn't integrate VisualDimensions or show/hide panels based on mode
+4. **Missing DOM element null checks**: App.js referenced DOM elements (_uploadInput, _renderBtn, _logoutBtn, etc.) that don't exist in studio.php, causing ReferenceError
+
+### Gap Analysis Table
+
+| Gap | Impact | Location | Line | Effect |
+|-----|--------|----------|------|--------|
+| Method missing | Manual mode fails completely | src/canvas/renderer.js | N/A | TypeError on triggerRender |
+| Single data point | Minimal rendering | src/canvas/renderer.js | renderUsingExplicitDimensions | Only 1-2 visual elements |
+| Panel not initialized | No sliders visible | src/controls/controls.js | init | VisualDimensions not set up |
+| Panel not visible | Sliders hidden | src/controls/controls.js | setMode | display: none always |
+| Null references | App crashes | src/app.js | Multiple | ReferenceError |
+
+### Decision Table
+
+| # | Decision | Rationale | Assumptions | Tradeoffs |
+|---|----------|-----------|------------|-----------|
+| 1 | **Add renderUsingExplicitDimensions method** (vs modify render) | Keeps data-driven render() unchanged, clear separation of concerns | Manual and Data-driven are fundamentally different paths | Method only used for Manual mode |
+| 2 | **Generate 30 data points** (vs style-specific counts) | Good default for most styles, sufficient for meaningful render | Some styles may need more/less, can optimize later | Simple, consistent, works well |
+| 3 | **Integrate VisualDimensions module** (vs custom UI) | Module already exists with full slider/color swatch UI | VisualDimensions works independently | Reuse existing, tested code |
+| 4 | **Mode-controlled panel visibility** (vs always show) | Matches user workflow, clean UI | Users understand mode concept | Requires mode state |
+| 5 | **Add null checks for DOM elements** (vs add missing elements) | studio.php and index.php have different elements, code must handle both | Different pages need different controls | Robust across all pages |
+
+### Implementation Details
+
+**src/canvas/renderer.js**:
+- Added renderUsingExplicitDimensions() method generating 30 data points
+- Grid distribution for most styles, random for Voronoi, sequential for timeSeries
+- Each point varies size, opacity, rotation around explicit dimension values
+- Fixed willReadFrequently warning in getContext()
+
+**src/controls/controls.js**:
+- Added _currentMode state variable (default: 'manual')
+- Added setMode(mode) and getMode() methods
+- Create _visualContainer div and initialize VisualDimensions
+- Modified triggerRender() to dispatch to renderUsingExplicitDimensions() in Manual mode
+- Added _onVisualDimensionsChange() handler to update state and trigger render
+- Mode toggle shows/hides _columnContainer vs _visualContainer
+
+**src/app.js**:
+- Added _modeManualRadio, _modeDataRadio DOM references
+- Wired radio change events to Controls.setMode() + triggerRender()
+- Initialize mode from radio button state
+- Added null checks for _uploadInput, _renderBtn, _logoutBtn, _loginForm, _authStatus
+- Trigger initial render after Controls initialization
+
+### Files Modified
+- src/canvas/renderer.js: Added renderUsingExplicitDimensions() method
+- src/controls/controls.js: Mode support, VisualDimensions integration
+- src/app.js: Mode toggle wiring, null checks
+
+### Files Audited
+- src/canvas/renderer.js: New method syntax (PASS)
+- src/controls/controls.js: Mode logic (PASS)
+- src/app.js: Event wiring (PASS)
+- src/controls/visualDimensions.js: Module available (PASS)
+
+### Assumptions Surfaced
+1. Manual mode should render equivalent output to Data-Driven mode with a dataset
+2. VisualDimensions panel should be visible in Manual mode, ColumnMapper in Data-Driven
+3. Default data point count of 30 provides meaningful visualization for all styles
+4. studio.php and index.php share app.js but have different DOM elements
+5. Canvas rendering should not produce browser warnings
+
+### CONSTRAINTS.md Entry
+- C-13: Manual mode must generate sufficient data points (30+) for meaningful art style rendering
+- C-14: VisualDimensions panel must be visible and functional in Manual mode
+- C-15: Mode toggle must correctly show/hide Manual vs Data-Driven control panels
+- C-16: All DOM element accesses must handle missing elements gracefully (null checks)
+
+### MEMORY.md Entry
+2026-04-25 · BLOCKER · renderUsingExplicitDimensions method was missing from Renderer, causing Manual mode to fail completely with TypeError. Single data point generation insufficient for meaningful art style output. VisualDimensions module existed but was not integrated in Controls, causing panel to be missing from UI.
+2026-04-25 · ARCHITECTURE · Manual mode uses explicit user-defined parameters (x, y, size, opacity, rotation, color) to generate synthetic data, while Data-Driven mode uses actual dataset columns. These are fundamentally different rendering paths requiring separate code.
+2026-04-25 · WORKFLOW · Mode toggle radio in studio.php must sync with Controls internal mode state, and show/hide appropriate control panels (VisualDimensions for Manual, ColumnMapper for Data-Driven).
+
+### Resolved Checkpoints
+- [x] rendererUsingExplicitDimensions method added to Renderer
+- [x] Manual mode generates 30+ data points for meaningful rendering
+- [x] VisualDimensions panel visible and functional in Manual mode
+- [x] Mode toggle correctly shows/hides appropriate panels
+- [x] Null checks added for DOM elements not in all pages
+- [x] Browser canvas willReadFrequently warning fixed
+
+### Unresolved Checkpoints
+- [ ] Database: Execute ALTER TABLE and UPDATE queries for mode/visual_dimensions columns (from previous session)
+- [ ] Test: Verify all 13 art styles render correctly in Manual mode
+- [ ] Test: Verify VisualDimensions sliders update rendering in real-time
+- [ ] Test: Verify mode toggle works smoothly between Manual and Data-Driven

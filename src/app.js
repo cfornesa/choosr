@@ -53,11 +53,14 @@
   var _exportBtn;
   var _saveArtworkBtn;
   var _loadArtworkBtn;
+  var _newArtworkBtn;
   var _errorDisplay;
   var _authStatus;
   var _emptyState;
   var _logoutBtn;
   var _loginForm;
+  var _modeManualRadio;
+  var _modeDataRadio;
 
   // Metadata panel references
   var _artworkTitleInput;
@@ -297,9 +300,9 @@
   // ─── Auth: Login Form Display ──────────────────────────────────────────
 
   function _showLoginForm() {
-    _loginForm.style.display = '';
+    if (_loginForm) _loginForm.style.display = '';
     // Clear auth status when switching modes
-    _authStatus.textContent = '';
+    if (_authStatus) _authStatus.textContent = '';
   }
 
   // ─── Auth: Register (disabled) ────────────────────────────────────────
@@ -337,7 +340,7 @@
         _authState.username = data.username;
         _updateAuthUI();
         _showStatus('Logged in as ' + _authState.username);
-        _loginForm.reset();
+        if (_loginForm) _loginForm.reset();
         // Refresh dataset list for user-owned datasets
         loadDatasetList();
       } else {
@@ -367,7 +370,7 @@
         _authState.username = null;
         _updateAuthUI();
         _showStatus('Logged out');
-        _loginForm.reset();
+        if (_loginForm) _loginForm.reset();
         // Refresh dataset list to show only preloaded datasets
         loadDatasetList();
         // Redirect to home page after logout
@@ -827,6 +830,8 @@
     _emptyState    = document.getElementById('dta-empty-state');
     _logoutBtn     = document.getElementById('dta-logout-btn');
     _loginForm     = document.getElementById('dta-login-form');
+    _modeManualRadio = document.getElementById('dta-mode-manual');
+    _modeDataRadio   = document.getElementById('dta-mode-data');
 
     // Metadata panel references
     _artworkTitleInput       = document.getElementById('dta-artwork-title');
@@ -861,7 +866,7 @@
 
     // Only show login form for index.php modal — studio.php handles visibility via CSS
     // (studio.php redirects unauthenticated users, so login form should never be needed there)
-    if (!_authState.loggedIn && window.location.pathname.indexOf('studio.php') === -1) {
+    if (_loginForm && !_authState.loggedIn && window.location.pathname.indexOf('studio.php') === -1) {
       _showLoginForm();
     }
 
@@ -876,6 +881,16 @@
       styleKey: 'particleField',
       renderingConfig: { animate: false }
     });
+
+    // Sync mode with radio button state
+    if (_modeManualRadio && _modeManualRadio.checked) {
+      window.DataToArt.Controls.setMode('manual');
+    } else if (_modeDataRadio && _modeDataRadio.checked) {
+      window.DataToArt.Controls.setMode('data');
+    }
+
+    // Trigger initial render with default dimensions
+    window.DataToArt.Controls.triggerRender();
 
     // Populate style selector
     // Attempt immediate population and schedule a defensive retry in case
@@ -916,7 +931,9 @@
     }
 
     // Wire event listeners
-    _uploadInput.addEventListener('change', _onFileUpload);
+    if (_uploadInput) {
+      _uploadInput.addEventListener('change', _onFileUpload);
+    }
 
     _datasetSelect.addEventListener('change', function() {
       var datasetId = _datasetSelect.value;
@@ -932,23 +949,46 @@
       }
     });
 
-    _renderBtn.addEventListener('click', function() {
-      window.DataToArt.Controls.triggerRender();
-    });
+    // Mode toggle listeners
+    if (_modeManualRadio && _modeDataRadio) {
+      _modeManualRadio.addEventListener('change', function() {
+        if (this.checked) {
+          window.DataToArt.Controls.setMode('manual');
+          window.DataToArt.Controls.triggerRender();
+        }
+      });
+      _modeDataRadio.addEventListener('change', function() {
+        if (this.checked) {
+          window.DataToArt.Controls.setMode('data');
+          window.DataToArt.Controls.triggerRender();
+        }
+      });
+    }
 
-    _exportBtn.addEventListener('click', function() {
-      var filename = 'artwork-' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.png';
-      // Check if there's a dataset loaded before exporting
-      if (!window.DataToArt.Controls._currentDataset) {
-        _showError('No data loaded — upload or select a dataset first');
-        return;
-      }
-      window.DataToArt.Controls.triggerExport(filename);
-      _showStatus('Exporting ' + filename + '…');
-    });
+    if (_renderBtn) {
+      _renderBtn.addEventListener('click', function() {
+        window.DataToArt.Controls.triggerRender();
+      });
+    }
+
+    if (_exportBtn) {
+      _exportBtn.addEventListener('click', function() {
+        var filename = 'artwork-' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.png';
+        // In Manual mode, we can export without a dataset
+        // In Data-Driven mode, still need a dataset
+        if (window.DataToArt.Controls.getMode() === 'data' && !window.DataToArt.Controls._currentDataset) {
+          _showError('No data loaded — upload or select a dataset first');
+          return;
+        }
+        window.DataToArt.Controls.triggerExport(filename);
+        _showStatus('Exporting ' + filename + '…');
+      });
+    }
 
     // Auth form submissions
-    _loginForm.addEventListener('submit', _onLoginSubmit);
+    if (_loginForm) {
+      _loginForm.addEventListener('submit', _onLoginSubmit);
+    }
 
     // Logout button
     if (_logoutBtn) {
@@ -982,8 +1022,9 @@
       }
     }, 200);
 
-    // Show empty state initially
-    _showEmptyState();
+    // Don't show empty state in Manual mode since we render defaults
+    // Only show it in Data-Driven mode with no dataset
+    // The render call above will populate the canvas
 
     log('App initialized');
   }

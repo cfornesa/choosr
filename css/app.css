@@ -39,6 +39,11 @@ html, body {
   padding: 12px 24px;
   border-bottom: 2px solid #c9922a;
   box-shadow: 4px 4px 0px #000000;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  justify-content: space-between;
+  position: relative;
 }
 
 #dta-header h1 {
@@ -47,6 +52,63 @@ html, body {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #f0ece4;
+  margin: 0;
+}
+
+.dta-header-title {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.dta-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: #f0ece4;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.dta-hamburger:hover {
+  color: #c9922a;
+}
+
+.dta-mobile-nav {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #1c1814;
+  border-top: 2px solid #c9922a;
+  box-shadow: 4px 4px 0px #000000;
+  z-index: 1000;
+}
+
+.dta-mobile-nav.dta-visible {
+  display: block;
+}
+
+.dta-mobile-nav a {
+  display: block;
+  width: 100%;
+  padding: 12px 24px;
+  border-bottom: 1px solid #2a2a2a;
+  box-shadow: none;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.dta-mobile-nav a:last-child {
+  border-bottom: none;
+}
+
+.dta-mobile-nav a:hover {
+  background: #242018;
+  color: #c9922a;
 }
 
 /* ─── Error / Status Display ──────────────────────────────────────── */
@@ -214,6 +276,74 @@ html, body {
 .dta-button-row button:nth-child(2) {
   background: #4a8fa8;
   color: #1c1814;
+}
+
+/* ─── New Artwork Button ──────────────────────────────────────────── */
+
+#dta-new-artwork-btn {
+  flex: 1;
+  padding: 10px 12px;
+  min-height: 40px;
+  background: #1c1814;
+  color: #f0ece4;
+  border: 1px solid #c9922a;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+#dta-new-artwork-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000000;
+  filter: brightness(1.1);
+}
+
+#dta-new-artwork-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000000;
+  filter: brightness(0.9);
+}
+
+/* ─── Delete Dataset Button ───────────────────────────────────────── */
+
+#dta-delete-dataset-btn {
+  flex: 1;
+  padding: 10px 12px;
+  min-height: 40px;
+  background: #1c1814;
+  border: 1px solid #8b1a1a;
+  color: #f0ece4;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s, opacity 0.15s;
+}
+
+#dta-delete-dataset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+#dta-delete-dataset-btn:not(:disabled):hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000000;
+  filter: brightness(1.1);
+}
+
+#dta-delete-dataset-btn:not(:disabled):active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px #000000;
+  filter: brightness(0.9);
 }
 
 /* ─── Controls Container (ColumnMapper + PalettePicker) ───────────── */
@@ -626,5 +756,231 @@ html, body {
 
   html, body {
     font-size: 14px;
+  }
+}
+/* =================================================================
+   Navigation Styles 
+   ================================================================= */
+
+.dta-nav {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.dta-nav a {
+  color: #f0ece4;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.dta-nav a:hover {
+  color: #c9922a;
+  border-color: #c9922a;
+}
+
+.dta-nav a.active {
+  color: #c9922a;
+  border-color: #c9922a;
+}
+
+.dta-nav-logout {
+  color: #8b1a1a !important;
+}
+
+.dta-nav-logout:hover {
+  color: #c9922a !important;
+  border-color: #c9922a !important;
+}
+
+/* =================================================================
+   Dataset Card Styles (for data.php)
+   ================================================================= */
+
+.dta-dataset-card {
+  background: #242018;
+  border: 1px solid #2a2a2a;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dta-dataset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dta-dataset-name {
+  color: #f0ece4;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dta-dataset-meta {
+  color: #8a8580;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.dta-dataset-delete {
+  background: none;
+  border: none;
+  color: #8b1a1a;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.dta-dataset-delete:hover {
+  color: #c9922a;
+  text-shadow: 2px 2px 0px #000000;
+}
+
+.dta-dataset-delete:active {
+  text-shadow: -2px -2px 0px #000000;
+}
+
+/* =================================================================
+   Delete Confirmation Modal
+   ================================================================= */
+
+.dta-delete-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dta-delete-modal.dta-visible {
+  display: flex;
+}
+
+.dta-delete-modal-content {
+  background: #242018;
+  border: 2px solid #c9922a;
+  box-shadow: 4px 4px 0px #000000;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.dta-delete-modal-content h3 {
+  color: #c9922a;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.dta-delete-modal-content p {
+  color: #a0a0a0;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dta-delete-modal-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.dta-btn-cancel {
+  padding: 8px 16px;
+  background: #1c1814;
+  color: #8a8580;
+  border: 1px solid #333;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.dta-btn-cancel:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000000;
+  color: #f0ece4;
+}
+
+.dta-btn-confirm {
+  padding: 8px 16px;
+  background: #8b1a1a;
+  color: #f0ece4;
+  border: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #000000;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.dta-btn-confirm:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px #000000;
+  background: #a02020;
+}
+
+/* =================================================================
+   Responsive Styles - Mobile/Tablet (≤768px)
+   ================================================================= */
+
+@media (max-width: 768px) {
+  /* Show hamburger button on mobile */
+  .dta-hamburger {
+    display: block;
+  }
+
+  /* Hide desktop navigation on mobile */
+  .dta-nav {
+    display: none;
+  }
+
+  /* Show mobile navigation on mobile */
+  .dta-mobile-nav {
+    display: none;
+  }
+
+  .dta-mobile-nav.dta-visible {
+    display: block;
+  }
+
+  /* Header layout adjustments */
+  #dta-header {
+    flex-wrap: wrap;
+  }
+
+  .dta-header-title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  #dta-header h1 {
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

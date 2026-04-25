@@ -9,6 +9,13 @@
 require_once __DIR__ . '/config/bootstrap.php';
 require_once __DIR__ . '/config/env.php';
 
+// No-cache: ensure updated artworks are always visible
+header('Cache-Control: no-cache, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
+$current_page = 'portfolio';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,6 +30,10 @@ require_once __DIR__ . '/config/env.php';
     };
   </script>
   <style>
+    /* Portfolio page specific styles */
+    #dta-portfolio-header {
+      display: none;
+    }
     /* Portfolio page specific styles */
     body {
       min-height: 100vh;
@@ -167,12 +178,45 @@ require_once __DIR__ . '/config/env.php';
         gap: 16px;
       }
     }
+    
+#dta-portfolio-main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      min-height: calc(100vh - 140px);
+    }
   </style>
 </head>
 <body>
 
-  <header id="dta-portfolio-header">
-    <h1>Portfolio — Data-to-Art Studio</h1>
+  <!-- Header with Navigation -->
+  <header id="dta-header">
+    <div class="dta-header-title">
+      <h1>Data-to-Art Studio</h1>
+      <button class="dta-hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+    </div>
+    <nav class="dta-nav">
+      <a href="index.php">Home</a>
+      <?php if (is_authenticated()): ?>
+        <a href="studio.php">Studio</a>
+        <a href="data.php">Data</a>
+        <a href="portfolio.php" class="active">Portfolio</a>
+        <a href="#" onclick="event.preventDefault(); logout(); toggleMobileNav();" class="dta-nav-logout">Log Out</a>
+      <?php else: ?>
+        <a href="portfolio.php" class="active">Portfolio</a>
+      <?php endif; ?>
+    </nav>
+    <nav class="dta-mobile-nav">
+      <a href="index.php">Home</a>
+      <?php if (is_authenticated()): ?>
+        <a href="studio.php">Studio</a>
+        <a href="data.php">Data</a>
+        <a href="portfolio.php" class="active">Portfolio</a>
+        <a href="#" onclick="event.preventDefault(); logout(); toggleMobileNav();" class="dta-nav-logout">Log Out</a>
+      <?php else: ?>
+        <a href="portfolio.php" class="active">Portfolio</a>
+      <?php endif; ?>
+    </nav>
   </header>
 
   <main id="dta-portfolio-main">
@@ -192,7 +236,55 @@ require_once __DIR__ . '/config/env.php';
     <p><a href="/" style="color:#c9922a;">← Back to Home</a></p>
   </footer>
 
+  <!-- Logout & Mobile Nav Functions -->
   <script>
+    function logout() {
+      fetch('api/auth/logout.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.success) {
+          window.location.href = 'index.php';
+        } else {
+          alert('Logout failed: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(function(err) {
+        alert('Logout failed: ' + err.message);
+      });
+    }
+
+    function toggleMobileNav() {
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (mobileNav) {
+        mobileNav.classList.toggle('dta-visible');
+      }
+    }
+
+    // Close mobile nav when clicking outside
+    document.addEventListener('click', function(event) {
+      var hamburger = document.querySelector('.dta-hamburger');
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (hamburger && mobileNav && mobileNav.classList.contains('dta-visible')) {
+        if (!hamburger.contains(event.target) && !mobileNav.contains(event.target)) {
+          mobileNav.classList.remove('dta-visible');
+        }
+      }
+    });
+
+    // Close mobile nav when clicking a link inside it
+    document.addEventListener('click', function(event) {
+      var mobileNav = document.querySelector('.dta-mobile-nav');
+      if (mobileNav && event.target.closest('a') && mobileNav.contains(event.target)) {
+        mobileNav.classList.remove('dta-visible');
+      }
+    });
+    
     document.addEventListener('DOMContentLoaded', function() {
       loadPortfolioArtworks();
     });
@@ -254,7 +346,7 @@ require_once __DIR__ . '/config/env.php';
         infoDiv.className = 'dta-portfolio-info';
 
         // Featured badge
-        if (artwork.is_featured === 1) {
+        if (artwork.is_featured == 1) {
           var badge = document.createElement('span');
           badge.className = 'dta-portfolio-featured-badge';
           badge.textContent = 'Featured';

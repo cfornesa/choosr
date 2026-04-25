@@ -23,6 +23,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/auth/session.php';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -376,11 +377,12 @@ try {
             (user_id, source_type, source_name, original_filename,
              file_size_bytes, mime_type, storage_path, is_sanitized)
         VALUES
-            (NULL, :source_type, :source_name, :original_filename,
+            (:user_id, :source_type, :source_name, :original_filename,
              :file_size_bytes, :mime_type, :storage_path, 0)
     ');
 
     $stmt->execute([
+        ':user_id'           => $currentUserId,
         ':source_type'       => 'upload',
         ':source_name'       => $original_name,
         ':original_filename' => $original_name,

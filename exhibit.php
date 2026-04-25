@@ -78,7 +78,51 @@ try {
 if (!$artwork) {
     // Show not found page
     header('HTTP/1.0 404 Not Found');
+    // Fall through to 404 page below
+} else {
+// Check if this is an embed request
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] === 'true';
+
+// Build embed URL with cache-busting
+$embedUrl = APP_URL . '/exhibit.php?id=' . $artworkId . '&embed=true';
+if (!empty($artwork['updated_at'])) {
+    $embedUrl .= '&v=' . strtotime($artwork['updated_at']);
 }
+
+// If embed mode, output minimal HTML with just the artwork
+if ($isEmbed) {
+    header('Content-Type: text/html');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+    
+    $title = htmlspecialchars($artwork['title'] || 'Untitled');
+    $altText = htmlspecialchars($artwork['title'] || 'Artwork');
+    
+    // Minimal HTML for embed - just the artwork
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . $title . '</title><style>body,html{margin:0;padding:0;height:100%;background:#0d0d0d;display:flex;align-items:center;justify-content:center;overflow:hidden}img{max-width:100%;max-height:100%;display:block;object-fit:contain}</style></head><body>';
+    
+    if (!empty($artwork['thumbnail_path'])) {
+        $thumbUrl = htmlspecialchars(ARTWORK_THUMBNAIL_URL . $artwork['thumbnail_path']);
+        $fullPath = ARTWORK_THUMBNAIL_DIR . $artwork['thumbnail_path'];
+        if (file_exists($fullPath)) {
+            echo '<img src="' . $thumbUrl . '" alt="' . $altText . '">';
+        } else {
+            echo '<div style="color:#555;font-family:monospace;font-size:14px;padding:32px;">' . htmlspecialchars($fullPath) . ' NOT FOUND</div>';
+        }
+    } else {
+        echo '<div style="color:#555;font-family:monospace;font-size:14px;padding:32px;">No thumbnail available</div>';
+    }
+    
+    echo '</body></html>';
+    exit;
+}
+}
+
+// No-cache for regular exhibit view: ensure updated artwork is always visible
+header('Cache-Control: no-cache, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 ?>
 <!DOCTYPE html>
@@ -322,7 +366,7 @@ if (!$artwork) {
       <div id="dta-exhibit-embed">
         <h2>Embed This Piece</h2>
         <p>Copy and paste this code into your website to embed this artwork:</p>
-        <div id="dta-embed-code">&lt;iframe src=&quot;<?php echo htmlspecialchars(APP_URL . '/exhibit.php?id=' . $artworkId); ?>&quot; width=&quot;800&quot; height=&quot;600&quot; frameborder=&quot;0&quot;&gt;&lt;/iframe&gt;</div>
+        <div id="dta-embed-code">&lt;iframe src=&quot;<?php echo htmlspecialchars($embedUrl); ?>&quot; width=&quot;800&quot; height=&quot;600&quot; frameborder=&quot;0&quot;&gt;&lt;/iframe&gt;</div>
       </div>
     </div>
   </main>

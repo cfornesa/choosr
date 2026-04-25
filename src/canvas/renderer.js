@@ -301,7 +301,7 @@
     }
 
     this.canvas = canvasElement;
-    this.ctx = canvasElement.getContext('2d');
+    this.ctx = canvasElement.getContext('2d', { willReadFrequently: true });
     this.options = options || {};
     this.debounceMs = this.options.debounceMs || 150;
 
@@ -549,6 +549,162 @@
       // Synchronous rendering (default)
       this._doRender(dataset, columnMapping || {}, paletteConfig || {}, rc, styleKey);
     }
+  };
+
+  /**
+   * Render artwork using explicit dimension values (Manual mode).
+   * Bypasses dataset-based normalization and creates data points directly.
+   *
+   * @param {Object} explicitDimensions - { x: -1..1, y: -1..1, size: pixels, opacity: 0..1, rotation: 0..360, color: hex }
+   * @param {Object} paletteConfig - { colors: ["#hex", ...], background: "#hex" (optional) }
+   * @param {Object} renderingConfig - style-specific config merged with defaults
+   * @param {string} styleKey - style identifier
+   */
+  Renderer.prototype.renderUsingExplicitDimensions = function(explicitDimensions, paletteConfig, renderingConfig, styleKey) {
+    if (this._destroyed) {
+      log('Renderer: cannot render, renderer is destroyed');
+      return;
+    }
+
+    var styleModule;
+    try {
+      styleModule = window.DataToArt.ArtStyles.getStyle(styleKey);
+    } catch (e) {
+      console.error('[Renderer] Error getting style "' + styleKey + '":', e.message,
+                    '. Available styles:', window.DataToArt.ArtStyles.listStyles().join(', '));
+      log('Renderer error:', e.message);
+      return;
+    }
+
+    var cssWidth = this.canvas.width / this._dpr;
+    var cssHeight = this.canvas.height / this._dpr;
+
+    // Clear canvas
+    this.clear(paletteConfig ? paletteConfig.background : DEFAULT_BACKGROUND);
+
+    // Get style module and ensure it's initialized
+    if (typeof styleModule.init === 'function') {
+      styleModule.init(this.ctx, this.canvas.width, this.canvas.height, renderingConfig || {});
+    }
+
+    // Generate multiple data points for meaningful rendering
+    // Different styles need different data structures
+    var dataPoints = [];
+    var colors = (paletteConfig && paletteConfig.colors) || ['#c9922a', '#f0ece4', '#8a8580', '#444444', '#1c1814'];
+    var bg = (paletteConfig && paletteConfig.background) || DEFAULT_BACKGROUND;
+    
+    // Normalize the explicit color into the palette
+    var modifiedPalette = paletteConfig || {};
+    if (explicitDimensions.color && !modifiedPalette.colors) {
+      modifiedPalette.colors = [];
+    }
+    if (explicitDimensions.color && modifiedPalette.colors && 
+        modifiedPalette.colors.indexOf(explicitDimensions.color) === -1) {
+      modifiedPalette.colors.unshift(explicitDimensions.color);
+    }
+    
+    // Use a reasonable default set of data points based on the style
+    var numPoints = 30;  // Default number of points
+    
+    switch(styleKey) {
+      case 'particleField':
+      case 'geometricGrid':
+      case 'flowingCurves':
+      case 'radialWave':
+      case 'fractalDust':
+      case 'neuralFlow':
+      case 'pixelMosaic':
+      case 'radialSymmetry':
+      case 'heatMap':
+      case 'scatterMatrix':
+      case 'barCode':
+        // Generate a grid of points distributed across the canvas
+        // Use explicitDimensions as center point and spread around it
+        var cols = Math.ceil(Math.sqrt(numPoints));
+        var rows = Math.ceil(numPoints / cols);
+        
+        for (var i = 0; i < numPoints; i++) {
+          var col = i % cols;
+          var row = Math.floor(i / cols);
+          
+          // Distribute points in a grid pattern around the explicit center
+          var x = explicitDimensions.x + ((col / (cols - 1)) * 0.8 - 0.4);
+          var y = explicitDimensions.y + ((row / (rows - 1)) * 0.8 - 0.4);
+          
+          // Use the explicit size as a base, add some variation
+          var size = (explicitDimensions.size / Math.max(cssWidth, cssHeight)) * 
+                     (0.7 + Math.random() * 0.6);
+          
+          dataPoints.push({
+            x: x,
+            y: y,
+            size: size,
+            color: colors[i % colors.length],
+            opacity: explicitDimensions.opacity * (0.7 + Math.random() * 0.3),
+            rotation: (explicitDimensions.rotation + (Math.random() * 60 - 30)) * Math.PI / 180
+          });
+        }
+        break;
+        
+      case 'voronoiCells':
+        // Voronoi needs scattered points for cells
+        for (var i = 0; i < numPoints; i++) {
+          dataPoints.push({
+            x: explicitDimensions.x + (Math.random() * 0.8 - 0.4),
+            y: explicitDimensions.y + (Math.random() * 0.8 - 0.4),
+            size: explicitDimensions.size / Math.max(cssWidth, cssHeight),
+            color: colors[i % colors.length],
+            opacity: 1,
+            rotation: 0
+          });
+        }
+        modifiedPalette.colors = colors;
+        break;
+        
+      case 'timeSeries':
+        // Time series needs sequential data
+        for (var i = 0; i < numPoints; i++) {
+          dataPoints.push({
+            x: explicitDimensions.x + ((i / (numPoints - 1)) * 0.8 - 0.4),
+            y: explicitDimensions.y + (Math.sin(i / 3) * 0.3),
+            size: explicitDimensions.size / Math.max(cssWidth, cssHeight),
+            color: colors[i % colors.length],
+            opacity: explicitDimensions.opacity,
+            rotation: 0
+          });
+        }
+        break;
+        
+      default:
+        // Fallback: create a grid of points
+        var defaultCols = Math.ceil(Math.sqrt(numPoints));
+        var defaultRows = Math.ceil(numPoints / defaultCols);
+        
+        for (var i = 0; i < numPoints; i++) {
+          var col = i % defaultCols;
+          var row = Math.floor(i / defaultCols);
+          dataPoints.push({
+            x: col / (defaultCols - 1) || 0,
+            y: row / (defaultRows - 1) || 0,
+            size: (explicitDimensions.size || 100) / Math.max(cssWidth, cssHeight),
+            color: colors[i % colors.length],
+            opacity: explicitDimensions.opacity || 1,
+            rotation: (explicitDimensions.rotation || 0) * Math.PI / 180
+          });
+        }
+    }
+
+    // Call the style's render function
+    styleModule.render(
+      this.ctx,
+      cssWidth,
+      cssHeight,
+      dataPoints,
+      modifiedPalette,
+      renderingConfig || {}
+    );
+
+    log('Rendered explicit dimensions for style:', styleKey);
   };
 
   /**
