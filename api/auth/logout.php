@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — User Logout Endpoint
+ * Creatrweb Data Art — User Logout Endpoint
  *
  * POST /api/auth/logout.php
  *

@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Exhibit Page
+ * Creatrweb Data Art — Exhibit Page
  *
  * Public view for a single artwork.
  * Route: /exhibit.php?id=ARTWORK_ID
@@ -96,8 +96,8 @@ if ($isEmbed) {
     header('Pragma: no-cache');
     header('Expires: 0');
     
-    $title = htmlspecialchars($artwork['title'] || 'Untitled');
-    $altText = htmlspecialchars($artwork['title'] || 'Artwork');
+    $title = htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Untitled');
+    $altText = htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Artwork');
     
     // Minimal HTML for embed - just the artwork
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' . $title . '</title><style>body,html{margin:0;padding:0;height:100%;background:#0d0d0d;display:flex;align-items:center;justify-content:center;overflow:hidden}img{max-width:100%;max-height:100%;display:block;object-fit:contain}</style></head><body>';
@@ -130,9 +130,9 @@ header('Expires: 0');
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo htmlspecialchars($artwork ? ($artwork['title'] || 'Untitled') : 'Not Found'); ?> — Data-to-Art Studio</title>
+  <title><?php echo htmlspecialchars($artwork ? (!empty($artwork['title']) ? $artwork['title'] : 'Untitled') : 'Not Found'); ?> — Creatrweb Data Art</title>
   <link rel="stylesheet" href="css/app.css">
-  <meta name="description" content="<?php echo htmlspecialchars($artwork ? ($artwork['description'] || '') : 'Artwork not found'); ?>">
+  <meta name="description" content="<?php echo htmlspecialchars($artwork ? (!empty($artwork['description']) ? $artwork['description'] : '') : 'Artwork not found'); ?>">
   <style>
     /* Exhibit page specific styles */
     body {
@@ -322,14 +322,14 @@ header('Expires: 0');
   
   <header id="dta-exhibit-header">
     <a href="/portfolio.php">← All Artworks</a>
-    <h1><?php echo htmlspecialchars($artwork['title'] || 'Untitled'); ?></h1>
+    <h1><?php echo htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Untitled'); ?></h1>
   </header>
 
   <main id="dta-exhibit-main">
     <div id="dta-exhibit-hero">
       <div id="dta-exhibit-visual">
         <?php if (!empty($artwork['thumbnail_path'])): ?>
-          <img src="<?php echo htmlspecialchars(ARTWORK_THUMBNAIL_URL . basename($artwork['thumbnail_path'])); ?>" alt="<?php echo htmlspecialchars($artwork['title'] || 'Artwork'); ?>">
+          <img src="<?php echo htmlspecialchars(ARTWORK_THUMBNAIL_URL . basename($artwork['thumbnail_path'])); ?>" alt="<?php echo htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Artwork'); ?>">
         <?php else: ?>
           <div class="dta-placeholder">No thumbnail available</div>
         <?php endif; ?>
@@ -372,7 +372,9 @@ header('Expires: 0');
   </main>
 
   <footer id="dta-exhibit-footer">
-    <p><a href="/" style="color:#c9922a;">← Back to Home</a> | Data-to-Art Studio</p>
+    <p>Creatrweb Data Art: My data art workstation. Copyright (c) <?php echo date('Y'); ?> <a href="https://fornesus.com" style="color:#606060;" target="_blank">Fornesus</a>.</p>
+    <p>Developed with open-source AI tools and models: Vibe CLI, Kilo Code, Opencode Go.</p>
+    <p><a href="portfolio.php" style="color:#606060;">View all public artworks</a>.</p>
   </footer>
 
   <?php else: ?>

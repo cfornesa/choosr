@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Portfolio Page
+ * Creatrweb Data Art — Portfolio Page
  *
  * Public page showing all public artworks, with featured pieces first.
  * Route: /portfolio.php
@@ -22,7 +22,7 @@ $current_page = 'portfolio';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portfolio — Data-to-Art Studio</title>
+  <title>Portfolio — Creatrweb Data Art</title>
   <link rel="stylesheet" href="css/app.css">
   <script>
     var DTA_CONFIG = {
@@ -179,13 +179,6 @@ $current_page = 'portfolio';
         gap: 16px;
       }
     }
-    
-#dta-portfolio-main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 32px 24px;
-      min-height: calc(100vh - 140px);
-    }
   </style>
 </head>
 <body>
@@ -193,7 +186,7 @@ $current_page = 'portfolio';
   <!-- Header with Navigation -->
   <header id="dta-header">
     <div class="dta-header-title">
-      <h1>Data-to-Art Studio</h1>
+      <h1>Creatrweb Data Art</h1>
       <button class="dta-hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
     </div>
     <nav class="dta-nav">
@@ -234,7 +227,9 @@ $current_page = 'portfolio';
   </main>
 
   <footer id="dta-portfolio-footer">
-    <p><a href="/" style="color:#c9922a;">← Back to Home</a></p>
+    <p>Creatrweb Data Art: My data art workstation. Copyright (c) <?php echo date('Y'); ?> <a href="https://fornesus.com" style="color:#606060;" target="_blank">Fornesus</a>.</p>
+    <p>Developed with open-source AI tools and models: Vibe CLI, Kilo Code, Opencode Go.</p>
+    <p><a href="index.php" style="color:#606060;">Back to Home</a>.</p>
   </footer>
 
   <!-- Logout & Mobile Nav Functions -->

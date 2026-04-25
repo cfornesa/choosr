@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Artwork Endpoint
+ * Creatrweb Data Art — Artwork Endpoint
  *
  * POST   /api/artwork.php          Save a new artwork
  * PATCH  /api/artwork.php?id={id}  Update artwork metadata (title, description, tags, is_public, is_featured)

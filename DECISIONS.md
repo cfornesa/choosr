@@ -1,6 +1,6 @@
 # DECISIONS.md
 
-## Project: Data-to-Art Studio
+## Project: Creatrweb Data Art
 
 ### Project Description
 
@@ -653,6 +653,35 @@ None required — no new constraints identified
 ---
 
 ## Session 27 — Art Style X/Y Centering Fix (2026-04-25)
+
+[Session 27 content was here]
+
+---
+
+## Session 28 — Portfolio Footer Overlap Fix (2026-04-25)
+
+**Issue:** Footer renders directly on top of portfolio content, obscuring footer content. Root cause: duplicate `#dta-portfolio-main` CSS definitions.
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| CSS consolidation | Removed duplicate `#dta-portfolio-main` definition (lines 183-188) | Second definition overrode the first but omitted `flex: 1 1 auto`, breaking the flex column layout that pushes footer down |
+
+### Root Cause Analysis
+1. **Lines 59-64**: First definition with `flex: 1 1 auto` (correct)
+2. **Lines 183-188**: Duplicate definition with `min-height: calc(100vh - 140px)` but **missing `flex: 1 1 auto`**
+3. Body uses `display: flex; flex-direction: column;` — requires flex property on main content to push footer down
+4. Hardcoded `min-height` calculation is brittle and doesn't account for dynamic content
+
+### Fix Details
+Removed the duplicate `#dta-portfolio-main` block entirely. The first definition (lines 59-64) with `flex: 1 1 auto` is sufficient — flexbox naturally handles footer positioning without explicit min-height calculations.
+
+### Assumptions Surfaced
+1. The duplicate CSS was an accidental copy-paste artifact, not intentional
+2. The flex column layout on body is the intended sticky footer pattern
+3. Footer should appear at bottom of viewport on short pages, below content on long pages
+
+### Files Modified
+- `portfolio.php`: Removed duplicate CSS block (was lines 183-188)
 
 **Issue:** barCode, scatterMatrix, and voronoiCells appear offset from center in Manual mode when X/Y visual dimensions are at default (0, 0). particleField positions correctly.
 
@@ -1438,6 +1467,96 @@ if (isManualMode) {
 
 ***
 
+## Session 32 — "New Artwork" Button Event Listener (2026-04-25)
+
+**Problem:** The "New Artwork" button in studio.php did nothing when clicked. The `_newArtworkBtn` DOM element was referenced in app.js (line 976) but no event listener was ever attached to it.
+
+**Root Cause:** Missing `addEventListener('click', _onNewArtworkClick)` wiring in `init()` function.
+
+### Implementation
+
+**Added `_onNewArtworkClick` handler function** (app.js lines 565-591):
+```javascript
+function _onNewArtworkClick() {
+  log('Starting new artwork');
+
+  _currentArtworkId = null;
+  if (_currentArtworkIdInput) {
+    _currentArtworkIdInput.value = '';
+  }
+
+  _clearArtworkMetadata();
+
+  if (window.DataToArt && window.DataToArt.Controls) {
+    window.DataToArt.Controls.reset();
+  }
+
+  _showStatus('New artwork started - canvas reset');
+}
+```
+
+**Wired event listener in `init()`** (app.js lines 1197-1200):
+```javascript
+if (_newArtworkBtn) {
+  _newArtworkBtn.addEventListener('click', _onNewArtworkClick);
+}
+```
+
+### Behavior
+
+Clicking "New Artwork" now:
+1. Clears `_currentArtworkId` and hidden input (so next save creates new, not PATCH)
+2. Calls `_clearArtworkMetadata()` to clear title/description/tags/checkboxes and hide delete button
+3. Calls `Controls.reset()` to clear canvas and reset to defaults (style='particleField', etc.)
+4. Shows status message confirming the action
+
+### Assumption Surfaced
+
+**Assumption:** `_clearArtworkMetadata()` at lines 596-609 already clears `_currentArtworkIdInput.value = ''` and calls `_updateDeleteButtonVisibility()`. The handler redundantly clears `_currentArtworkId` and the input, but this is intentional defensive coding — ensures no stale state persists even if `_clearArtworkMetadata()` is modified in the future.
+
+---
+
+## Session 30 — Featured Items API Fix + Mobile Grid (2026-04-25)
+
+**Problem:** When 4+ artworks are marked as featured, only 3 display. Root cause: API applies `PORTFOLIO_FEATURED_LIMIT` default limit even when no explicit limit parameter is provided. CSS grid needed mobile single-column breakpoint.
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| API change | Remove default limit for featured filter | Return ALL featured items when no limit param; only apply limit when explicitly requested |
+| CSS change | Add mobile breakpoint at 500px | Force single column on mobile (≤500px); desktop uses existing `auto-fit` behavior |
+
+### Implementation
+
+**api/artworks.php (lines 51-69):**
+- Featured filter now conditionally builds SQL: with LIMIT/OFFSET only when `$limit !== null`
+- Security cap (max 100) remains intact for explicit limit requests
+- Public filter unchanged (still needs pagination defaults)
+
+**index.php (lines 174-179):**
+```css
+@media (max-width: 500px) {
+  #dta-featured-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+### Assumption Surfaced
+1. `auto-fit` CSS grid was already correct for desktop — only mobile breakpoint was missing
+2. `PORTFOLIO_FEATURED_LIMIT` constant becomes unused for featured queries (still used for public filter fallback)
+
+### Files Modified
+- `api/artworks.php`: Featured filter conditional LIMIT/OFFSET
+- `index.php`: Mobile media query for featured grid
+
+### Validation
+- [x] API returns ALL featured items when no limit parameter provided
+- [x] API still respects explicit limit parameter when provided
+- [x] Mobile (<500px): Single column layout
+- [x] Desktop: Multiple items per row via existing `auto-fit`
+
+---
+
 ## Session 30 — Canvas Centering and Rotation Origin Fix (2026-04-25)
 
 **Problem:** Artwork appears in lower-right quadrant instead of centered, and rotation feels wrong because it rotates around an "invisible center" rather than the artwork's visual center.
@@ -1615,5 +1734,52 @@ But styles calculated positions using `(w - totalBarsWidth) / 2` which assumes t
 - [ ] BarCode renders as recognizable horizontal bar code pattern
 - [ ] All styles work correctly in both Manual and Data-Driven modes
 - [ ] No console errors after fixes
+
+---
+
+## Session 34 — PHP `||` Operator Bug Fix in exhibit.php (2026-04-25)
+
+**Problem:** Artwork titles in exhibit.php displayed as "1" instead of the actual title. Root cause: PHP's `||` (logical OR) operator returns a boolean (`true`/`false`), not the first truthy value like JavaScript.
+
+### Root Cause Analysis
+
+| JavaScript | PHP |
+|------------|-----|
+| `'Title' \|\| 'Untitled'` → `'Title'` | `'Title' \|\| 'Untitled'` → `true` |
+| Returns first truthy value | Returns boolean |
+
+When PHP echoes `true`, it displays as **"1"**.
+
+### Solution
+
+Replaced all instances of `$var || 'default'` with `!empty($var) ? $var : 'default'` to properly handle both `null` and empty string cases.
+
+### Files Modified
+
+| File | Lines | Change |
+|------|-------|--------|
+| `PROMPTS.md` | +8 lines | Added Prompt 8 entry |
+| `exhibit.php` | 99, 100, 133, 135, 325, 332 | Replaced `\|\|` with `!empty()` ternary |
+
+### Specific Changes
+
+| Line | Before | After |
+|------|--------|-------|
+| 99 | `$artwork['title'] \|\| 'Untitled'` | `!empty($artwork['title']) ? $artwork['title'] : 'Untitled'` |
+| 100 | `$artwork['title'] \|\| 'Artwork'` | `!empty($artwork['title']) ? $artwork['title'] : 'Artwork'` |
+| 133 | `$artwork['title'] \|\| 'Untitled'` | `!empty($artwork['title']) ? $artwork['title'] : 'Untitled'` |
+| 135 | `$artwork['description'] \|\| ''` | `!empty($artwork['description']) ? $artwork['description'] : ''` |
+| 325 | `$artwork['title'] \|\| 'Untitled'` | `!empty($artwork['title']) ? $artwork['title'] : 'Untitled'` |
+| 332 | `$artwork['title'] \|\| 'Artwork'` | `!empty($artwork['title']) ? $artwork['title'] : 'Artwork'` |
+
+### Assumptions Surfaced
+1. User confirmed PHP 8 hosting — `!empty()` fully supported
+2. User requested "Untitled" fallback for both `null` AND empty string titles — `!empty()` satisfies both cases
+3. This is a common JavaScript-to-PHP developer confusion pattern
+
+### Verification
+- [x] All 6 occurrences fixed in exhibit.php
+- [x] Prompt 8 added to PROMPTS.md
+- [x] DECISIONS.md updated with session entry
 
 ---

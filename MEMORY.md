@@ -401,3 +401,26 @@
     must be relative to the transformed origin, not absolute canvas dimensions.
     Durable: Any sampling/drawing operation in transformed coordinate space must
     use bounds centered at (0,0), not top-left-origin bounds.
+
+2026-04-25 · BUG FIX · The "New Artwork" button in studio.php was non-functional —
+    `_newArtworkBtn` DOM element was referenced in app.js (line 976) but no
+    `addEventListener` call existed for it. All other artwork buttons (Save,
+    Load, Delete) followed a consistent null-check handler-wiring pattern in
+    `init()` that New Artwork was simply missing. Fix added `_onNewArtworkClick`
+    handler (clears ID, metadata, calls `Controls.reset()`, shows status) and
+    wired it with the same `if (_newArtworkBtn) { _newArtworkBtn.addEventListener(...) }`
+    null-check pattern. After fix, next save correctly POSTs new artwork instead
+    of PATCHing a stale `_currentArtworkId`.
+    Durable: Every interactive DOM element in app.js needs both a variable assignment
+    AND an event listener wiring in `init()` — missing listener = silent no-op.
+
+2026-04-25 · CSS · The flex column sticky footer pattern (`body { display: flex; flex-direction: column; }`) requires `flex: 1 1 auto` on the main content area. Duplicate selectors in embedded CSS can silently override this property and break footer positioning without triggering any errors.
+
+---
+
+2026-04-25 · ARCHITECTURE · Featured items API endpoint must not apply default
+    limits — when `filter=featured` with no explicit limit parameter, all
+    featured public artworks are returned. This enables the homepage grid to
+    display any number of featured items without arbitrary truncation.
+    [Session 30: api/artworks.php removes default PORTFOLIO_FEATURED_LIMIT
+    for featured filter; index.php adds mobile breakpoint at 500px for single-column layout]

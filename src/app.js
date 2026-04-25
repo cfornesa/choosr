@@ -563,6 +563,34 @@
   }
 
   /**
+   * Handle "New Artwork" button click - reset to fresh canvas state.
+   * Clears artwork identity so next save creates a new artwork (not updates existing).
+   */
+  function _onNewArtworkClick() {
+    log('Starting new artwork');
+
+    // Clear artwork ID so save creates new, not updates
+    // (Also clears hidden input to prevent stale data display)
+    _currentArtworkId = null;
+    if (_currentArtworkIdInput) {
+      _currentArtworkIdInput.value = '';
+    }
+
+    // Clear metadata fields (title, description, tags, checkboxes)
+    // This also calls _updateDeleteButtonVisibility() to hide delete button
+    _clearArtworkMetadata();
+
+    // Reset controls - clears canvas, resets column mapping, restores palette,
+    // resets style to 'particleField', cancels debounced renders
+    if (window.DataToArt && window.DataToArt.Controls) {
+      window.DataToArt.Controls.reset();
+    }
+
+    // Show status to confirm action
+    _showStatus('New artwork started - canvas reset');
+  }
+
+  /**
    * Clear metadata panel
    */
   function _clearArtworkMetadata() {
@@ -1164,6 +1192,11 @@
     // Delete Artwork button
     if (_deleteArtworkBtn) {
       _deleteArtworkBtn.addEventListener('click', _onDeleteArtworkClick);
+    }
+
+    // New Artwork button (resets canvas to fresh state)
+    if (_newArtworkBtn) {
+      _newArtworkBtn.addEventListener('click', _onNewArtworkClick);
     }
 
     // Fetch initial dataset list

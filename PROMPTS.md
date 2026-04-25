@@ -37,3 +37,15 @@
 - Scope: src/canvas/renderer.js (fixed renderUsingExplicitDimensions to generate 30 data points), src/controls/controls.js (mode support with VisualDimensions integration, show/hide panels), src/app.js (mode toggle wiring, null checks for missing DOM elements), studio.php (DOM element verification).
 - Plan: Add renderUsingExplicitDimensions method to Renderer that generates multiple data points for each style. Add _currentMode state and setMode/getMode methods to Controls. Create and initialize VisualDimensions panel in Manual mode. Wire mode radio toggle in app.js. Add null checks for DOM elements not present in studio.php (_uploadInput, _renderBtn, etc.). Fix canvas willReadFrequently warning.
 - Success: Manual mode shows Visual Dimensions panel with all sliders and color swatch. Manual mode renders 30+ data points for meaningful visualization. Mode toggle correctly shows/hides Manual (VisualDimensions) vs Data-driven (ColumnMapper) panels. No console errors. Both modes render all 13 art styles correctly.
+
+## Prompt 7: New Artwork Button Event Listener Fix (2026-04-25)
+- Details: The "New Artwork" button in studio.php did nothing when clicked. Root cause: _newArtworkBtn DOM element was referenced in app.js (line 976) but no event listener was ever attached. All other buttons (Save, Load, Delete) had handlers wired in init() but New Artwork was missing.
+- Scope: src/app.js (add _onNewArtworkClick handler function, wire event listener in init())
+- Plan: Create _onNewArtworkClick handler that clears _currentArtworkId, clears hidden input, calls _clearArtworkMetadata(), calls Controls.reset(), and shows status message. Wire the listener in init() after other button listeners using the null-check pattern if (_newArtworkBtn).
+- Success: Clicking "New Artwork" clears artwork ID, clears metadata fields, resets canvas to defaults, hides delete button, and next save creates a new artwork (POST) not updates existing (PATCH). Status message confirms action.
+
+## Prompt 8: PHP Logical OR Bug Fix in exhibit.php (2026-04-25)
+- Details: User reported that artwork titles display as "1" instead of the actual title in exhibit.php. The problematic code uses PHP's `||` (logical OR) operator which returns a boolean (true/false), not the first truthy value like JavaScript. User wants "Untitled" to appear for both null AND empty string titles.
+- Scope: exhibit.php - Fix 6 occurrences of `||` used for default value fallbacks (lines 99, 100, 133, 135, 325, 332)
+- Plan: Replace all instances of `$var || 'default'` with `!empty($var) ? $var : 'default'` to properly handle both null and empty string cases. The `!empty()` check returns false for null, empty strings, and other falsy values.
+- Success: Artwork titles display correctly in exhibit.php, "Untitled" fallback works for missing or empty titles, no other functionality affected.

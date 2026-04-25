@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — User Registration Endpoint (DISABLED)
+ * Creatrweb Data Art — User Registration Endpoint (DISABLED)
  *
  * POST /api/auth/register.php
  *

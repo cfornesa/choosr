@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Datasets Endpoint
+ * Creatrweb Data Art — Datasets Endpoint
  *
  * GET    /api/datasets.php          List user's + preloaded datasets with columns
  * DELETE /api/datasets.php?id={id}  Delete a user-owned dataset and its physical file

@@ -1,6 +1,6 @@
 /**
  * Canvas Renderer
- * Main rendering engine for the Data-to-Art Studio.
+ * Main rendering engine for the Creatrweb Data Art.
  *
  * Responsibilities:
  *   - Canvas initialization, sizing, and high-DPI handling

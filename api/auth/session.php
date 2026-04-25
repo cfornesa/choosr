@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Session Validation Utility
+ * Creatrweb Data Art — Session Validation Utility
  *
  * NOT a standalone endpoint. Include at the top of any protected API endpoint:
  *

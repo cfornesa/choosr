@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — API Feeds Endpoint
+ * Creatrweb Data Art — API Feeds Endpoint
  *
  * GET /api/apiFeeds.php?source_url={url}&source_name={name}
  *

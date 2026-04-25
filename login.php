@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Login Page
+ * Creatrweb Data Art — Login Page
  *
  * Route: /login.php
  *
@@ -22,7 +22,7 @@ if (is_authenticated()) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Log In — Data-to-Art Studio</title>
+  <title>Log In — Creatrweb Data Art</title>
   <link rel="stylesheet" href="css/app.css">
   <style>
     body {

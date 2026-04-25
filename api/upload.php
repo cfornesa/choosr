@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — File Upload Handler
+ * Creatrweb Data Art — File Upload Handler
  *
  * Accepts CSV, TSV, and XLSX uploads. Enforces the C-04 sanitization
  * pipeline: MIME validation, size limit, extension allowlist, and

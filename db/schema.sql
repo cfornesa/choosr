@@ -29,7 +29,7 @@
 -- ALTER TABLE `artworks` ADD COLUMN `mode` ENUM('manual', 'data') NOT NULL DEFAULT 'data' AFTER `is_featured`;
 -- ALTER TABLE `artworks` ADD COLUMN `visual_dimensions` JSON NULL AFTER `rendering_config`;
 -- ALTER TABLE `artworks` ADD INDEX `idx_artworks_mode` (`mode`);============================================================
--- Data-to-Art Studio — MySQL Schema
+-- Creatrweb Data Art — MySQL Schema
 -- Session: 2026-04-23, Session 2
 -- Engine: InnoDB | Charset: utf8mb4
 -- Idempotent: all CREATE TABLE uses IF NOT EXISTS

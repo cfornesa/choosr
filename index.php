@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Public Landing Page
+ * Creatrweb Data Art — Public Landing Page
  *
  * Route: /
  * 
@@ -20,7 +20,7 @@ $current_page = 'home';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data-to-Art Studio</title>
+  <title>Creatrweb Data Art</title>
   <link rel="stylesheet" href="css/app.css">
   <script>
     var DTA_CONFIG = {
@@ -170,7 +170,14 @@ $current_page = 'home';
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 24px;
     }
-    
+
+    /* Mobile: force single column */
+    @media (max-width: 500px) {
+      #dta-featured-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .dta-featured-card {
       background: #242018;
       border: 1px solid #2a2a2a;
@@ -262,7 +269,7 @@ $current_page = 'home';
   <!-- Header with Navigation -->
   <header id="dta-header">
     <div class="dta-header-title">
-      <h1>Data-to-Art Studio</h1>
+      <h1>Creatrweb Data Art</h1>
       <button class="dta-hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
     </div>
     <nav class="dta-nav">
@@ -292,7 +299,7 @@ $current_page = 'home';
   <!-- Landing Page Content -->
   <main id="dta-landing-main">
     <div id="dta-landing-header">
-      <h1>Data-to-Art Studio</h1>
+      <h1>Creatrweb Data Art</h1>
     </div>
 
     <p id="dta-landing-description">
@@ -312,8 +319,9 @@ $current_page = 'home';
   </main>
 
   <footer id="dta-landing-footer">
-    <p>Data-to-Art Studio — A generative art workstation</p>
-    <p><a href="portfolio.php" style="color:#606060;">View all public artworks</a></p>
+    <p>Creatrweb Data Art: My data art workstation. Copyright (c) <?php echo date('Y'); ?> <a href="https://fornesus.com" style="color:#606060;" target="_blank">Fornesus</a>.</p>
+    <p>Developed with open-source AI tools and models: Vibe CLI, Kilo Code, Opencode Go.</p>
+    <p><a href="portfolio.php" style="color:#606060;">View all public artworks</a>.</p>
   </footer>
 
   <!-- Logout & Mobile Nav Functions -->

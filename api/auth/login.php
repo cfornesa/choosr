@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — User Login Endpoint
+ * Creatrweb Data Art — User Login Endpoint
  *
  * POST /api/auth/login.php
  * Body (JSON): { "email": "...", "password": "..." }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Session Bootstrap
+ * Creatrweb Data Art — Session Bootstrap
  * 
  * Shared include for all pages that need session management.
  * usage: require_once __DIR__ . '/../config/bootstrap.php';

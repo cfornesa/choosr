@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Artworks Listing Endpoint
+ * Creatrweb Data Art — Artworks Listing Endpoint
  *
  * GET /api/artworks.php?filter=featured&limit=N    List featured public artworks (for homepage)
  * GET /api/artworks.php?filter=public             List all public artworks (for portfolio)
@@ -50,20 +50,23 @@ if ($limit !== null && ($limit <= 0 || $limit > 100)) {
 try {
     if ($filter === 'featured') {
         // Featured artworks: is_public=1 AND is_featured=1, ordered by created_at DESC
-        if ($limit === null) {
-            $limit = PORTFOLIO_FEATURED_LIMIT;
-        }
-
-        $stmt = $pdo->prepare('
+        // Only apply limit if explicitly requested - otherwise return all featured
+        $sql = '
             SELECT a.*, s.display_name AS art_style_name, s.style_key
             FROM artworks a
             LEFT JOIN art_styles s ON a.art_style_id = s.id
             WHERE a.is_public = 1 AND a.is_featured = 1
             ORDER BY a.created_at DESC
-            LIMIT :limit OFFSET :offset
-        ');
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        ';
+        
+        if ($limit !== null) {
+            $sql .= ' LIMIT :limit OFFSET :offset';
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        } else {
+            $stmt = $pdo->prepare($sql);
+        }
     } else {
         // All public artworks: is_public=1, featured first then others
         if ($limit === null) {

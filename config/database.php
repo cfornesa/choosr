@@ -1,6 +1,6 @@
 <?php
 /**
- * Data-to-Art Studio — Database Connection
+ * Creatrweb Data Art — Database Connection
  *
  * Returns a configured PDO instance connected to the MySQL database.
  * Usage: $pdo = require __DIR__ . '/../config/database.php';

@@ -1,5 +1,5 @@
 ```vibe-cli
-# HANDOFF PROMPT — Data-to-Art Studio
+# HANDOFF PROMPT — Creatrweb Data Art
 # Target agent: Vibe CLI (Devstral 2)
 # Task: Scaffold
 # Session: 2026-04-23 — First build session
@@ -9,7 +9,7 @@ Read DECISIONS.md and DESIGN.md in full before writing any code.
 Do not proceed until both files are read and confirmed in your plan output.
 
 ## Project
-Data-to-Art Studio — a generative art workstation where users bring data
+Creatrweb Data Art — a generative art workstation where users bring data
 (uploaded CSV/TSV/XLSX, curated preloaded datasets, or live API feeds),
 map data columns to visual dimensions, and compose artwork by choosing
 art styles, color palettes, and rendering modes. Users can create accounts,
@@ -52,7 +52,7 @@ save artwork state, and share pieces via a persistent gallery.
 - Final review: Vibe CLI / Devstral 2 (final session)
 
 ## First instruction
-Scaffold the full project directory structure for the Data-to-Art Studio
+Scaffold the full project directory structure for the Creatrweb Data Art
 Phase 1 build. Create all top-level directories and empty entry-point files
 only — no logic yet. The structure must include:
 - `/public` — HTML entry points and static assets
