@@ -90,6 +90,7 @@ try {
         $artwork['column_mapping']   = json_decode($artwork['column_mapping'], true);
         $artwork['palette_config']   = json_decode($artwork['palette_config'], true);
         $artwork['rendering_config'] = json_decode($artwork['rendering_config'], true);
+        $artwork['visual_dimensions'] = $artwork['visual_dimensions'] !== null ? json_decode($artwork['visual_dimensions'], true) : null;
     }
     unset($artwork);
 

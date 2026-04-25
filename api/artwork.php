@@ -61,6 +61,10 @@ if ($method === 'POST') {
     $description      = $body['description'] ?? null;
     $tags             = $body['tags'] ?? null;
     $is_featured      = $body['is_featured'] ?? ARTWORK_DEFAULT_IS_FEATURED;
+    
+    // Manual mode fields
+    $mode             = $body['mode'] ?? 'data';
+    $visual_dimensions = $body['visual_dimensions'] ?? null;
 
     // Validate required fields
     $missing = [];
@@ -230,13 +234,32 @@ if ($method === 'POST') {
             exit;
         }
 
+        // Validate mode
+        if (!in_array($mode, ['manual', 'data'])) {
+            $mode = 'data';
+        }
+        
+        // Encode visual_dimensions if provided
+        $encoded_visual_dimensions = null;
+        if ($visual_dimensions !== null) {
+            $encoded_visual_dimensions = json_encode($visual_dimensions);
+            if ($encoded_visual_dimensions === false) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'Failed to encode visual_dimensions: ' . json_last_error_msg(),
+                ]);
+                exit;
+            }
+        }
+
         $insert_stmt = $pdo->prepare('
             INSERT INTO artworks
                 (user_id, dataset_id, art_style_id, title, description,
-                 column_mapping, palette_config, rendering_config, is_public, is_featured, tags, thumbnail_path)
+                 column_mapping, palette_config, rendering_config, is_public, is_featured, mode, visual_dimensions, tags, thumbnail_path)
             VALUES
                 (:user_id, :dataset_id, :art_style_id, :title, :description,
-                 :column_mapping, :palette_config, :rendering_config, :is_public, :is_featured, :tags, NULL)
+                 :column_mapping, :palette_config, :rendering_config, :is_public, :is_featured, :mode, :visual_dimensions, :tags, NULL)
         ');
 
         $insert_stmt->execute([
@@ -250,6 +273,8 @@ if ($method === 'POST') {
             ':rendering_config' => $encoded_rendering_config,
             ':is_public'        => $is_public,
             ':is_featured'     => $is_featured,
+            ':mode'            => $mode,
+            ':visual_dimensions' => $encoded_visual_dimensions,
             ':tags'             => $tags,
         ]);
 
@@ -328,7 +353,7 @@ if ($method === 'PATCH') {
     }
 
     // Only allow updating these metadata fields
-    $allowedFields = ['art_style_id', 'title', 'description', 'tags', 'dataset_id', 'column_mapping', 'palette_config', 'rendering_config', 'is_public', 'is_featured', 'thumbnail_data'];
+    $allowedFields = ['art_style_id', 'title', 'description', 'tags', 'dataset_id', 'column_mapping', 'palette_config', 'rendering_config', 'is_public', 'is_featured', 'mode', 'visual_dimensions', 'thumbnail_data'];
     $updates = [];
     $params = ['id' => $id, 'user_id' => $currentUserId];
     $thumbnail_data = null;
@@ -408,6 +433,32 @@ if ($method === 'PATCH') {
                     if ($body['rendering_config'] !== null && $encoded === false) {
                         http_response_code(400);
                         echo json_encode(['success' => false, 'error' => 'Failed to encode rendering_config as JSON']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $encoded;
+                    break;
+
+                case 'mode':
+                    if (!in_array($body['mode'], ['manual', 'data'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'mode must be "manual" or "data"']);
+                        exit;
+                    }
+                    $updates[] = "`$field` = :$field";
+                    $params[":$field"] = $body['mode'];
+                    break;
+
+                case 'visual_dimensions':
+                    if ($body['visual_dimensions'] !== null && !is_array($body['visual_dimensions'])) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'visual_dimensions must be a JSON object, array, or null']);
+                        exit;
+                    }
+                    $encoded = ($body['visual_dimensions'] !== null) ? json_encode($body['visual_dimensions']) : null;
+                    if ($body['visual_dimensions'] !== null && $encoded === false) {
+                        http_response_code(400);
+                        echo json_encode(['success' => false, 'error' => 'Failed to encode visual_dimensions as JSON']);
                         exit;
                     }
                     $updates[] = "`$field` = :$field";
@@ -595,6 +646,7 @@ if ($method === 'GET') {
             $artwork['column_mapping']   = json_decode($artwork['column_mapping'], true);
             $artwork['palette_config']   = json_decode($artwork['palette_config'], true);
             $artwork['rendering_config'] = json_decode($artwork['rendering_config'], true);
+            $artwork['visual_dimensions'] = $artwork['visual_dimensions'] !== null ? json_decode($artwork['visual_dimensions'], true) : null;
 
             echo json_encode([
                 'success' => true,
@@ -618,6 +670,7 @@ if ($method === 'GET') {
                 $artwork['column_mapping']   = json_decode($artwork['column_mapping'], true);
                 $artwork['palette_config']   = json_decode($artwork['palette_config'], true);
                 $artwork['rendering_config'] = json_decode($artwork['rendering_config'], true);
+                $artwork['visual_dimensions'] = $artwork['visual_dimensions'] !== null ? json_decode($artwork['visual_dimensions'], true) : null;
             }
             unset($artwork);
 

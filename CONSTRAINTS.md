@@ -191,3 +191,63 @@ data collection terms.
 **SCOPE:** src/app.js (DOM reference event listeners), src/controls/controls.js (panel display logic).
 
 **SET:** 2026-04-25 · Session 28 — App.js referenced elements like dta-file-upload, dta-render-btn, dta-logout-btn that don't exist in studio.php, causing ReferenceError and preventing initialization.
+
+---
+
+### C-17 · Manual Mode Dimension Normalization
+
+**CONSTRAINT:** Manual mode must normalize explicit dimensions to 0-1 range to match data-driven mode contract. All art styles expect visual dimension values in 0-1 normalized format from data-driven mode, and Manual mode must produce compatible data points to ensure consistent rendering across all styles.
+
+**SCOPE:** src/canvas/renderer.js renderUsingExplicitDimensions method, all Manual mode dimension processing.
+
+**SET:** 2026-06-25 · Session 22 — Dimensions were not properly normalized: X/Y values could be outside 0-1 range, Size was divided by canvas dimensions making it microscopic, Color was passed as hex string where styles expected 0-1 palette index, Rotation format was inconsistent. Normalization ensures Manual mode data points match data-driven mode format.
+
+---
+
+### C-18 · Grid Generation Bounds
+
+**CONSTRAINT:** Grid generation in Manual mode must center around explicit position without producing out-of-bounds coordinates. Generated data points must remain within or near the 0-1 normalized range to be properly interpreted by all art styles.
+
+**SCOPE:** src/canvas/renderer.js grid generation in renderUsingExplicitDimensions method.
+
+**SET:** 2026-06-25 · Session 22 — Previous offset calculation (col/(cols-1) * 0.8 - 0.4) could push points to -0.4 to 1.4 range when combined with explicit position. Centered grid approach with controlled spread (±0.3) keeps points within reasonable bounds.
+
+---
+
+### C-19 · Thumbnail Generation Requirements
+
+**CONSTRAINT:** Thumbnail generation requires both canvas.toDataURL() without security errors and a writable thumbnails directory. The canvas must not be tainted by cross-origin images, and the server must have write permissions to public/assets/thumbnails/ for thumbnail PNG files to be saved successfully.
+
+**SCOPE:** src/app.js save handler (thumbnail capture), api/artwork.php (thumbnail processing), public/assets/thumbnails/ directory.
+
+**SET:** 2026-06-25 · Session 22 — Thumbnails were not being produced because frontend wasn't capturing canvas and sending thumbnail_data. Even with capture, canvas taint or missing directory would prevent success.
+
+---
+
+### C-20 · JavaScript Syntax Validation
+
+**CONSTRAINT:** All search/replace operations on JavaScript files using multi-line blocks must be validated with `node -c <file>` before proceeding to the next file modification. This prevents orphan braces, mismatched parentheses, and other structural errors from being committed.
+
+**SCOPE:** All JavaScript files modified via search_replace tool.
+
+**SET:** 2025-XX-XX · Session 23 — Syntax error introduced in visualDimensions.js via orphan closing brace after removing if/else block. Error only caught after user reported VisualDimensions pane disappeared. Post-fix validation prevents recurrence.
+
+---
+
+### C-21 · Pre-write Self-Check
+
+**CONSTRAINTS:** Before any file write (search_replace or write_file), perform the pre-write check: (1) verify not in Irreversible Decisions table, (2) confirm no public API contract modification without docs/api.md update, (3) confirm no new dependencies without docs/dependencies.md update, (4) validate Rule 1 assumption has been surfaced. Log any skipped checks as unresolved checkpoints in DECISIONS.md.
+
+**SCOPE:** All file write operations.
+
+**SET:** 2025-XX-XX · Session 23 — Pre-write check skipped entirely, leading to multiple Rule violations. Formalizing as mandatory step.
+
+---
+
+### C-22 · Mandatory Documentation Updates
+
+**CONSTRAINT:** Every session that modifies code must update DECISIONS.md with implementation details, assumptions surfaced, and self-evaluation. Each new constraint discovered must be added to CONSTRAINTS.md. MEMORY.md entries must be proposed for durable lessons before session end.
+
+**SCOPE:** All implementation sessions resulting in code changes.
+
+**SET:** 2025-XX-XX · Session 23 — DECISIONS.md and CONSTRAINTS.md not updated during session; MEMORY.md not proposed before final response. Required post-session cleanup.

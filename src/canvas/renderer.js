@@ -593,14 +593,19 @@
     var colors = (paletteConfig && paletteConfig.colors) || ['#c9922a', '#f0ece4', '#8a8580', '#444444', '#1c1814'];
     var bg = (paletteConfig && paletteConfig.background) || DEFAULT_BACKGROUND;
     
-    // Normalize the explicit color into the palette
+    // Normalize explicit dimensions to 0-1 range to match data-driven mode format
+    // This ensures art styles interpret the values consistently
+    // Note: Manual mode uses palette colors only (no explicit color dimension)
+    var normX = ((explicitDimensions.x || 0) + 1) / 2;  // -1..1 -> 0..1
+    var normY = ((explicitDimensions.y || 0) + 1) / 2;  // -1..1 -> 0..1
+    var normSize = (explicitDimensions.size || 100) / 500;  // 0..500 -> 0..1
+    var normOpacity = explicitDimensions.opacity !== undefined ? explicitDimensions.opacity : 1;  // already 0..1
+    var normRotation = (explicitDimensions.rotation || 0) / 360;  // 0..360 -> 0..1
+    
+    // Use palette colors only for Manual mode data points
     var modifiedPalette = paletteConfig || {};
-    if (explicitDimensions.color && !modifiedPalette.colors) {
-      modifiedPalette.colors = [];
-    }
-    if (explicitDimensions.color && modifiedPalette.colors && 
-        modifiedPalette.colors.indexOf(explicitDimensions.color) === -1) {
-      modifiedPalette.colors.unshift(explicitDimensions.color);
+    if (!modifiedPalette.colors) {
+      modifiedPalette.colors = colors;
     }
     
     // Use a reasonable default set of data points based on the style
@@ -619,7 +624,8 @@
       case 'scatterMatrix':
       case 'barCode':
         // Generate a grid of points distributed across the canvas
-        // Use explicitDimensions as center point and spread around it
+        // Center grid around normalized explicit position (0..1)
+        // Grid spread is limited to keep points visible within canvas
         var cols = Math.ceil(Math.sqrt(numPoints));
         var rows = Math.ceil(numPoints / cols);
         
@@ -627,21 +633,29 @@
           var col = i % cols;
           var row = Math.floor(i / cols);
           
-          // Distribute points in a grid pattern around the explicit center
-          var x = explicitDimensions.x + ((col / (cols - 1)) * 0.8 - 0.4);
-          var y = explicitDimensions.y + ((row / (rows - 1)) * 0.8 - 0.4);
+          // Calculate grid position relative to center point
+          // col/(cols-1) gives 0..1. Subtract 0.5 to center around 0, then scale
+          // This keeps the grid tight around the center point
+          var gridX = (col / (cols - 1 || 1)) - 0.5;  // -0.5 to 0.5
+          var gridY = (row / (rows - 1 || 1)) - 0.5;  // -0.5 to 0.5
           
-          // Use the explicit size as a base, add some variation
-          var size = (explicitDimensions.size / Math.max(cssWidth, cssHeight)) * 
-                     (0.7 + Math.random() * 0.6);
+          // Apply normalized explicit dimensions as center point
+          // normX and normY are 0..1, gridX/gridY spread around it
+          var x = normX + gridX * 0.6;  // 0.6 = spread factor (keep within -0.3 to 1.3 range)
+          var y = normY + gridY * 0.6;
+          
+          // Apply size from explicit dimensions
+          var pointSize = normSize;
+          // Color: use null to let art styles apply their own palette logic
+          // (most styles use colors[i % colors.length] when pt.color is null)
           
           dataPoints.push({
             x: x,
             y: y,
-            size: size,
-            color: colors[i % colors.length],
-            opacity: explicitDimensions.opacity * (0.7 + Math.random() * 0.3),
-            rotation: (explicitDimensions.rotation + (Math.random() * 60 - 30)) * Math.PI / 180
+            size: pointSize,
+            color: null,
+            opacity: normOpacity,
+            rotation: normRotation
           });
         }
         break;
@@ -649,47 +663,55 @@
       case 'voronoiCells':
         // Voronoi needs scattered points for cells
         for (var i = 0; i < numPoints; i++) {
+          // Generate random spread around center point
+          var gridX = (Math.random() - 0.5) * 0.8;  // -0.4 to 0.4
+          var gridY = (Math.random() - 0.5) * 0.8;  // -0.4 to 0.4
           dataPoints.push({
-            x: explicitDimensions.x + (Math.random() * 0.8 - 0.4),
-            y: explicitDimensions.y + (Math.random() * 0.8 - 0.4),
-            size: explicitDimensions.size / Math.max(cssWidth, cssHeight),
-            color: colors[i % colors.length],
-            opacity: 1,
-            rotation: 0
+            x: normX + gridX,
+            y: normY + gridY,
+            size: normSize,
+            color: null,
+            opacity: normOpacity,
+            rotation: normRotation
           });
         }
-        modifiedPalette.colors = colors;
+        modifiedPalette.colors = modifiedPalette.colors || colors;
         break;
         
       case 'timeSeries':
         // Time series needs sequential data
         for (var i = 0; i < numPoints; i++) {
+          var t = i / (numPoints - 1 || 1);  // 0..1
+          // Spread along X axis, oscillate on Y
           dataPoints.push({
-            x: explicitDimensions.x + ((i / (numPoints - 1)) * 0.8 - 0.4),
-            y: explicitDimensions.y + (Math.sin(i / 3) * 0.3),
-            size: explicitDimensions.size / Math.max(cssWidth, cssHeight),
-            color: colors[i % colors.length],
-            opacity: explicitDimensions.opacity,
-            rotation: 0
+            x: normX + (t - 0.5) * 0.8,  // -0.4 to 0.4 spread around center
+            y: normY + Math.sin(t * Math.PI * 2) * 0.2,  // oscillate ±0.2
+            size: normSize,
+            color: null,
+            opacity: normOpacity,
+            rotation: normRotation
           });
         }
         break;
         
       default:
-        // Fallback: create a grid of points
-        var defaultCols = Math.ceil(Math.sqrt(numPoints));
+        // Fallback: create a centered grid of points
+        var defaultCols = Math.max(1, Math.ceil(Math.sqrt(numPoints)));
         var defaultRows = Math.ceil(numPoints / defaultCols);
         
         for (var i = 0; i < numPoints; i++) {
           var col = i % defaultCols;
           var row = Math.floor(i / defaultCols);
+          // Center around normX, normY
+          var gridX = (col / (defaultCols - 1 || 1)) - 0.5;
+          var gridY = (row / (defaultRows - 1 || 1)) - 0.5;
           dataPoints.push({
-            x: col / (defaultCols - 1) || 0,
-            y: row / (defaultRows - 1) || 0,
-            size: (explicitDimensions.size || 100) / Math.max(cssWidth, cssHeight),
-            color: colors[i % colors.length],
-            opacity: explicitDimensions.opacity || 1,
-            rotation: (explicitDimensions.rotation || 0) * Math.PI / 180
+            x: normX + gridX * 0.6,
+            y: normY + gridY * 0.6,
+            size: normSize,
+            color: null,
+            opacity: normOpacity,
+            rotation: normRotation
           });
         }
     }

@@ -593,6 +593,8 @@
     var renderingConfig = controls._currentRenderingConfig || {};
     var styleKey = controls._currentStyleKey || '';
     var dataset = controls._currentDataset;
+    var currentMode = controls.getMode ? controls.getMode() : 'manual';
+    var visualDimensions = controls._currentVisualDimensions || null;
 
     // Get metadata from inputs
     var title = _artworkTitleInput ? _artworkTitleInput.value.trim() : '';
@@ -605,12 +607,22 @@
     var datasetId = dataset ? dataset.dataset_id : null;
 
     // Look up art_style_id from styleKey
-    // We need to map styleKey to database ID
-    // For now, we'll use a hardcoded mapping or fetch from API
+    // Map camelCase JavaScript styleKey to database art_styles.id
+    // Database style_keys use underscore_case, but JavaScript uses camelCase
     var styleIdMap = {
       'particleField': 1,
       'geometricGrid': 2,
-      'flowingCurves': 3
+      'flowingCurves': 3,
+      'radialWave': 4,
+      'fractalDust': 5,
+      'neuralFlow': 6,
+      'pixelMosaic': 7,
+      'voronoiCells': 8,
+      'radialSymmetry': 9,
+      'timeSeries': 10,
+      'heatMap': 11,
+      'scatterMatrix': 12,
+      'barCode': 13
     };
     var artStyleId = styleIdMap[styleKey] || null;
 
@@ -624,7 +636,19 @@
       return;
     }
 
-    // Build payload for POST to api/artwork.php
+    // Build payload for api/artwork.php
+    // Branch on existing artwork ID: PATCH for updates, POST for new
+    var method = 'POST';
+    var url = 'api/artwork.php';
+    
+    if (_currentArtworkId) {
+      method = 'PATCH';
+      url = 'api/artwork.php?id=' + encodeURIComponent(_currentArtworkId);
+      log('Updating existing artwork ID:', _currentArtworkId);
+    } else {
+      log('Creating new artwork');
+    }
+
     var payload = {
       art_style_id: artStyleId,
       title: title,
@@ -638,10 +662,37 @@
       is_featured: isFeatured
     };
 
-    log('Saving artwork:', payload);
+    // For Manual mode, include mode and visual dimensions
+    if (currentMode === 'manual') {
+      payload.mode = 'manual';
+      // Remove color from visualDimensions if present (Manual mode uses palette only)
+      var vd = visualDimensions || {};
+      var cleanVD = {
+        x: vd.x !== undefined ? vd.x : 0,
+        y: vd.y !== undefined ? vd.y : 0,
+        size: vd.size !== undefined ? vd.size : 100,
+        opacity: vd.opacity !== undefined ? vd.opacity : 1,
+        rotation: vd.rotation !== undefined ? vd.rotation : 0
+      };
+      payload.visual_dimensions = cleanVD;
+    }
 
-    fetch('api/artwork.php', {
-      method: 'POST',
+    // Capture thumbnail from canvas
+    var canvasEl = _canvasEl || document.getElementById('dta-canvas');
+    if (canvasEl) {
+      try {
+        var thumbnailData = canvasEl.toDataURL('image/png');
+        payload.thumbnail_data = thumbnailData;
+        log('Thumbnail captured:', thumbnailData ? 'YES (' + thumbnailData.length + ' chars)' : 'NO');
+      } catch (e) {
+        log('Failed to capture thumbnail:', e.message);
+      }
+    }
+
+    log('Saving artwork with method:', method, 'payload:', payload);
+
+    fetch(url, {
+      method: method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     })
@@ -768,37 +819,80 @@
         // Load dataset if available
         if (artwork.dataset_id) {
           loadDataset(artwork.dataset_id);
+        } else {
+          // No dataset means this was saved in Manual mode
+          log('Loading Manual mode artwork - no dataset_id');
+          window.DataToArt.Controls._currentDataset = null;
+        }
+
+        // Set the correct mode based on artwork
+        var mode = artwork.mode || (artwork.dataset_id ? 'data' : 'manual');
+        if (mode === 'manual') {
+          window.DataToArt.Controls.setMode('manual');
+          // Ensure manual mode radio is checked
+          if (_modeManualRadio) _modeManualRadio.checked = true;
+          if (_modeDataRadio) _modeDataRadio.checked = false;
+        } else {
+          window.DataToArt.Controls.setMode('data');
+          if (_modeManualRadio) _modeManualRadio.checked = false;
+          if (_modeDataRadio) _modeDataRadio.checked = true;
         }
 
         // Restore mapping and palette config to Controls
-        if (window.DataToArt && window.DataToArt.Controls && artwork.column_mapping) {
-          window.DataToArt.Controls.loadDataset(
-            window.DataToArt.Controls._currentDataset
-          );
+        var controls = window.DataToArt && window.DataToArt.Controls;
+        
+        // Map database art_styles.id to camelCase styleKey
+        var styleKeyForId = {
+          1: 'particleField',
+          2: 'geometricGrid', 
+          3: 'flowingCurves',
+          4: 'radialWave',
+          5: 'fractalDust',
+          6: 'neuralFlow',
+          7: 'pixelMosaic',
+          8: 'voronoiCells',
+          9: 'radialSymmetry',
+          10: 'timeSeries',
+          11: 'heatMap',
+          12: 'scatterMatrix',
+          13: 'barCode'
+        };
+        
+        if (controls) {
+          // Update style first (some styles need this before render)
+          if (artwork.art_style_id) {
+            var styleKey = styleKeyForId[artwork.art_style_id] || 'particleField';
+            controls.setStyle(styleKey);
+            _styleSelect.value = styleKey;
+          }
+
+          if (artwork.dataset_id) {
+            controls.loadDataset(controls._currentDataset);
+          }
+
           // Update mapping
           if (artwork.column_mapping) {
-            window.DataToArt.Controls._currentColumnMapping = artwork.column_mapping;
+            controls._currentColumnMapping = artwork.column_mapping;
           }
           // Update palette
           if (artwork.palette_config) {
-            window.DataToArt.Controls._currentPaletteConfig = artwork.palette_config;
+            controls._currentPaletteConfig = artwork.palette_config;
           }
           // Update rendering config
           if (artwork.rendering_config) {
-            window.DataToArt.Controls._currentRenderingConfig = artwork.rendering_config;
+            controls._currentRenderingConfig = artwork.rendering_config;
           }
-          // Update style
-          if (artwork.art_style_id) {
-            // We need to map ID back to style_key
-            // For now, use the style map in reverse or fetch from API
-            // This is a simplification - in production you'd fetch the mapping
-            var styleKeyForId = {1: 'particleField', 2: 'geometricGrid', 3: 'flowingCurves'};
-            var styleKey = styleKeyForId[artwork.art_style_id] || 'particleField';
-            window.DataToArt.Controls.setStyle(styleKey);
-            _styleSelect.value = styleKey;
+
+          // For Manual mode artworks, restore visual dimensions
+          if (artwork.visual_dimensions) {
+            controls._currentVisualDimensions = artwork.visual_dimensions;
+            if (controls.VisualDimensions && controls.VisualDimensions.setValues) {
+              controls.VisualDimensions.setValues(artwork.visual_dimensions);
+            }
           }
+
           // Re-render with restored state
-          window.DataToArt.Controls.triggerRender();
+          controls.triggerRender();
         }
 
         _showStatus('Loaded artwork: ' + artwork.title);

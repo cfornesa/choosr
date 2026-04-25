@@ -1,7 +1,8 @@
 /**
  * Visual Dimensions Module
- * Explicit user-defined parameters for X, Y, Size, Opacity, Rotation, Color.
+ * Explicit user-defined parameters for X, Y, Size, Opacity, Rotation.
  * Decoupled from dataset columns - user sets values directly via sliders.
+ * Manual mode uses palette colors only (no explicit color dimension).
  *
  * Output: Object with explicit dimension values passed directly to art styles.
  *
@@ -11,7 +12,6 @@
  *   Size: 0 to maxSize pixels (style-dependent, default 500)
  *   Opacity: 0 to 1
  *   Rotation: 0 to 360 degrees
- *   Color: Hex (#RRGGBB)
  *
  * Design per DESIGN.md + CONSTRAINTS.md:
  *   - Surface background #1a1a1a, border #2a2a2a
@@ -37,15 +37,14 @@
 
   // ─── Dimension Configuration ────────────────────────────────────────────
 
-  var DIMENSIONS = ['x', 'y', 'size', 'opacity', 'rotation', 'color'];
+  var DIMENSIONS = ['x', 'y', 'size', 'opacity', 'rotation'];
 
   var DIMENSION_LABELS = {
     x: 'X Position',
     y: 'Y Position',
     size: 'Size',
     opacity: 'Opacity',
-    rotation: 'Rotation',
-    color: 'Color'
+    rotation: 'Rotation'
   };
 
   var DIMENSION_RANGES = {
@@ -53,8 +52,7 @@
     y: { min: -1, max: 1, step: 0.01 },
     size: { min: 0, max: 500, step: 1 },
     opacity: { min: 0, max: 1, step: 0.01 },
-    rotation: { min: 0, max: 360, step: 1 },
-    color: { type: 'color' }
+    rotation: { min: 0, max: 360, step: 1 }
   };
 
   // ─── Internal State ────────────────────────────────────────────────────
@@ -64,8 +62,7 @@
     y: 0,
     size: 100,
     opacity: 1,
-    rotation: 0,
-    color: '#ff0000'
+    rotation: 0
   };
 
   var _maxSize = 500;
@@ -122,14 +119,6 @@
       border: '1px solid #2a2a2a',
       color: '#f0ece4',
       textAlign: 'right'
-    },
-    colorSwatch: {
-      width: '60px',
-      height: '28px',
-      padding: '0',
-      border: '1px solid #2a2a2a',
-      background: '#000',
-      cursor: 'pointer'
     },
     button: {
       background: '#1c1814',
@@ -203,8 +192,7 @@
         y: parseFloat(_values.y),
         size: parseInt(_values.size),
         opacity: parseFloat(_values.opacity),
-        rotation: parseInt(_values.rotation),
-        color: _values.color
+        rotation: parseInt(_values.rotation)
       };
     },
 
@@ -221,7 +209,7 @@
           if (_controls[dim] && _controls[dim].valueInput) {
             _controls[dim].valueInput.value = values[dim];
           }
-          if (_controls[dim] && _controls[dim].slider && dim !== 'color') {
+          if (_controls[dim] && _controls[dim].slider) {
             _controls[dim].slider.value = values[dim];
           }
         }
@@ -240,8 +228,7 @@
         y: Math.random() * 2 - 1,
         size: Math.floor(Math.random() * _maxSize),
         opacity: Math.random(),
-        rotation: Math.floor(Math.random() * 360),
-        color: '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')
+        rotation: Math.floor(Math.random() * 360)
       };
       this.setValues(newValues);
       log('Randomized dimensions:', newValues);
@@ -256,8 +243,7 @@
         y: 0,
         size: 100,
         opacity: 1,
-        rotation: 0,
-        color: '#ff0000'
+        rotation: 0
       });
     }
   };
@@ -294,95 +280,64 @@
       applyStyles(label, STYLES.label);
       row.appendChild(label);
 
-      if (dimName === 'color') {
-        // Color swatch
-        var colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.id = 'vd-' + dimName;
-        colorInput.value = _values[dimName];
-        applyStyles(colorInput, STYLES.colorSwatch);
-        colorInput.addEventListener('input', function() {
-          _values[dimName] = this.value;
-          _fireChange();
-        });
-        row.appendChild(colorInput);
+      // Slider
+      var slider = document.createElement('input');
+      slider.type = 'range';
+      slider.id = 'vd-' + dimName;
+      slider.min = range.min;
+      slider.max = range.max;
+      slider.step = range.step || 1;
+      slider.value = _values[dimName];
+      applyStyles(slider, STYLES.slider);
 
-        // Store reference
-        _controls[dimName] = { element: colorInput };
+      // Numeric value input
+      var valueInput = document.createElement('input');
+      valueInput.type = 'number';
+      valueInput.min = range.min;
+      valueInput.max = range.max;
+      valueInput.step = range.step || 1;
+      valueInput.value = _values[dimName];
+      applyStyles(valueInput, STYLES.valueInput);
 
-        // Display hex value
-        var hexDisplay = document.createElement('span');
-        hexDisplay.textContent = _values[dimName].toUpperCase();
-        hexDisplay.style.fontFamily = 'Courier New, monospace';
-        hexDisplay.style.fontSize = '11px';
-        hexDisplay.style.color = '#8a8580';
-        row.appendChild(hexDisplay);
-        _controls[dimName].display = hexDisplay;
+      // Sync slider and input
+      var sync = function() {
+        var val = parseFloat(slider.value);
+        if (dimName === 'size' || dimName === 'rotation') {
+          val = Math.round(val);
+        } else {
+          val = parseFloat(val.toFixed(2));
+        }
+        valueInput.value = val;
+        _values[dimName] = val;
+        _fireChange();
+      };
 
-        colorInput.addEventListener('input', function() {
-          hexDisplay.textContent = this.value.toUpperCase();
-        });
+      slider.addEventListener('input', function() {
+        valueInput.value = this.value;
+        sync();
+      });
 
-      } else {
-        // Slider
-        var slider = document.createElement('input');
-        slider.type = 'range';
-        slider.id = 'vd-' + dimName;
-        slider.min = range.min;
-        slider.max = range.max;
-        slider.step = range.step || 1;
-        slider.value = _values[dimName];
-        applyStyles(slider, STYLES.slider);
+      valueInput.addEventListener('change', function() {
+        var val = parseFloat(this.value);
+        if (isNaN(val)) return;
+        if (val < range.min) val = range.min;
+        if (val > range.max) val = range.max;
+        slider.value = val;
+        _values[dimName] = val;
+        _fireChange();
+      });
 
-        // Numeric value input
-        var valueInput = document.createElement('input');
-        valueInput.type = 'number';
-        valueInput.min = range.min;
-        valueInput.max = range.max;
-        valueInput.step = range.step || 1;
-        valueInput.value = _values[dimName];
-        applyStyles(valueInput, STYLES.valueInput);
+      row.appendChild(slider);
+      row.appendChild(valueInput);
 
-        // Sync slider and input
-        var sync = function() {
-          var val = parseFloat(slider.value);
-          if (dimName === 'size' || dimName === 'rotation') {
-            val = Math.round(val);
-          } else {
-            val = parseFloat(val.toFixed(2));
-          }
-          valueInput.value = val;
-          _values[dimName] = val;
-          _fireChange();
-        };
-
-        slider.addEventListener('input', function() {
-          valueInput.value = this.value;
-          sync();
-        });
-
-        valueInput.addEventListener('change', function() {
-          var val = parseFloat(this.value);
-          if (isNaN(val)) return;
-          if (val < range.min) val = range.min;
-          if (val > range.max) val = range.max;
-          slider.value = val;
-          _values[dimName] = val;
-          _fireChange();
-        });
-
-        row.appendChild(slider);
-        row.appendChild(valueInput);
-
-        // Store references
-        _controls[dimName] = {
-          slider: slider,
-          valueInput: valueInput
-        };
-      }
+      // Store references
+      _controls[dimName] = {
+        slider: slider,
+        valueInput: valueInput
+      };
 
       _containerEl.appendChild(row);
-    }
+      }
 
     // Randomize button
     var randomBtn = document.createElement('button');

@@ -300,3 +300,37 @@
     (VisualDimensions for Manual, ColumnMapper for Data-Driven).
     [Session 28: Controls.setMode() updates _currentMode and toggles panel
     visibility; app.js syncs radio state with mode and wires change events]
+
+2026-06-25 · ARCHITECTURE · Manual and Data-Driven modes must converge on the same data point format (0-1 normalized values) for art styles to render consistently across both modes.
+
+2026-06-25 · WORKFLOW · Mode state and visual dimensions must be explicitly persisted with artworks to enable fidelity across save/load cycles.
+
+2025-XX-XX · PROCESS · RULES · Rule 8 pre-write self-check prevents syntax errors
+    Attempted multi-line search/replace to remove color dimension from
+    visualDimensions.js. Failed to account for orphan closing brace from
+    removed if/else block. Result: SyntaxError on line 358 prevented entire
+    module from loading. Fix: Added node -c validation step; removed
+    orphan brace, corrected indentation.
+    Lesson: Structural changes to code with nested blocks require post-edit
+    syntax validation.
+    Durable: JavaScript file modifications must pass node -c before
+    proceeding to next change.
+
+2025-XX-XX · PROCESS · RULES · Rule 1 applies regardless of user context quality
+    User provided exhaustive implementation context with exact code changes
+    needed. Proceeded directly to implementation without naming assumptions.
+    Result: Violated Rule 1; missed opportunity to confirm understanding.
+    lesson: Detailed user instructions do NOT exempt agent from Rule 1
+    obligation.
+    Durable: Always name at least one embedded assumption before first file
+    write, even when direction appears unambiguous.
+
+2025-XX-XX · ARCHITECTURE · CLARITY · Manual mode and Data-Driven mode have separate
+    dimension handling
+    Manual mode: VisualDimensions module (X, Y, Size, Opacity, Rotation) +
+    palette colors only. Data-Driven mode: ColumnMapper module (X, Y,
+    Size, Color, Opacity, Rotation) + dataset values. Color is intentionally
+    absent from Manual mode VisualDimensions. Both modes produce normalized
+    0-1 data points compatible with all art styles.
+    Durable: Color dimension only available in Data-Driven mode via dataset
+    column mapping; Manual mode uses palettecolors exclusively.

@@ -1,4 +1,34 @@
+-- ALTER TABLE: Add is_featured and tags to artworks
+-- NOTE: The fields are already included in the CREATE TABLE above.
+-- If the table already exists on your server, run these ALTER TABLE
+-- statements manually via phpMyAdmin or mysql CLI:
 -- ============================================================
+
+-- ALTER TABLE `artworks` ADD COLUMN `is_featured` TINYINT(1) NOT NULL DEFAULT 0 AFTER `is_public`;
+-- ALTER TABLE `artworks` ADD COLUMN `tags` VARCHAR(255) NULL AFTER `description`;
+-- ALTER TABLE `artworks` ADD INDEX `idx_artworks_public_featured` (`is_public`, `is_featured`, `created_at`);
+=======
+-- ============================================================
+-- ALTER TABLE: Add is_featured and tags to artworks
+-- NOTE: The fields are already included in the CREATE TABLE above.
+-- If the table already exists on your server, run these ALTER TABLE
+-- statements manually via phpMyAdmin or mysql CLI:
+-- ============================================================
+
+-- ALTER TABLE `artworks` ADD COLUMN `is_featured` TINYINT(1) NOT NULL DEFAULT 0 AFTER `is_public`;
+-- ALTER TABLE `artworks` ADD COLUMN `tags` VARCHAR(255) NULL AFTER `description`;
+-- ALTER TABLE `artworks` ADD INDEX `idx_artworks_public_featured` (`is_public`, `is_featured`, `created_at`);
+
+-- ============================================================
+-- ALTER TABLE: Add mode and visual_dimensions for Manual mode support
+-- NOTE: The fields are already included in the CREATE TABLE above.
+-- If the table already exists on your server, run these ALTER TABLE
+-- statements manually via phpMyAdmin or mysql CLI:
+-- ============================================================
+
+-- ALTER TABLE `artworks` ADD COLUMN `mode` ENUM('manual', 'data') NOT NULL DEFAULT 'data' AFTER `is_featured`;
+-- ALTER TABLE `artworks` ADD COLUMN `visual_dimensions` JSON NULL AFTER `rendering_config`;
+-- ALTER TABLE `artworks` ADD INDEX `idx_artworks_mode` (`mode`);============================================================
 -- Data-to-Art Studio — MySQL Schema
 -- Session: 2026-04-23, Session 2
 -- Engine: InnoDB | Charset: utf8mb4
@@ -125,6 +155,8 @@ CREATE TABLE IF NOT EXISTS `artworks` (
     `rendering_config` JSON            NULL,
     `is_public`        TINYINT(1)      NOT NULL DEFAULT 0,
     `is_featured`      TINYINT(1)      NOT NULL DEFAULT 0,
+    `mode`            ENUM('manual', 'data') NOT NULL DEFAULT 'data',
+    `visual_dimensions` JSON           NULL,
     `tags`             VARCHAR(255)    NULL,
     `thumbnail_path`   VARCHAR(500)    NULL,
     `created_at`       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,

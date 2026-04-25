@@ -127,6 +127,7 @@ $current_page = 'portfolio';
       margin: 0 0 8px 0;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }

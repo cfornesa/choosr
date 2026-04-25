@@ -196,15 +196,21 @@
         background: DEFAULT_BACKGROUND
       };
 
-      // Initialize VisualDimensions with default values
+      // Initialize VisualDimensions with default values (no color - uses palette only)
       Controls._currentVisualDimensions = {
-        x: 0, y: 0, size: 100, opacity: 1, rotation: 0, color: '#ff0000'
+        x: 0, y: 0, size: 100, opacity: 1, rotation: 0
       };
 
       // Initialize Renderer
       _renderer = new window.DataToArt.Renderer(canvasElement, options.rendererOptions);
 
       // Create sub-module containers
+      // VisualDimensions and ColumnMapper are toggled based on mode;
+      // placing both dimension controls first ensures they occupy the same position
+      _visualContainer = document.createElement('div');
+      _visualContainer.id = 'dta-visual-dimensions';
+      _controlsEl.appendChild(_visualContainer);
+
       _columnContainer = document.createElement('div');
       _columnContainer.id = 'dta-column-mapper';
       _controlsEl.appendChild(_columnContainer);
@@ -212,10 +218,6 @@
       _paletteContainer = document.createElement('div');
       _paletteContainer.id = 'dta-palette-picker';
       _controlsEl.appendChild(_paletteContainer);
-
-      _visualContainer = document.createElement('div');
-      _visualContainer.id = 'dta-visual-dimensions';
-      _controlsEl.appendChild(_visualContainer);
 
       // Initialize ColumnMapper (no dataset loaded yet)
       window.DataToArt.ColumnMapper.render(
@@ -348,7 +350,7 @@
         // Manual mode: use explicit VisualDimensions values
         if (!Controls._currentVisualDimensions) {
           log('triggerRender() — no visual dimensions set in manual mode, using defaults');
-          Controls._currentVisualDimensions = { x: 0, y: 0, size: 100, opacity: 1, rotation: 0, color: '#ff0000' };
+          Controls._currentVisualDimensions = { x: 0, y: 0, size: 100, opacity: 1, rotation: 0 };
         }
 
         log('Rendering (Manual mode) — style:', Controls._currentStyleKey, 
@@ -364,7 +366,7 @@
         // Data-driven mode: use dataset and column mapping
         if (!Controls._currentDataset) {
           log('triggerRender() — no dataset loaded in data-driven mode, using default visual dimensions');
-          var defaultDimensions = { x: 0, y: 0, size: 100, opacity: 1, rotation: 0, color: '#ff0000' };
+          var defaultDimensions = { x: 0, y: 0, size: 100, opacity: 1, rotation: 0 };
           _renderer.renderUsingExplicitDimensions(
             defaultDimensions,
             Controls._currentPaletteConfig,
