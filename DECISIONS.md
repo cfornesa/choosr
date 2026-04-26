@@ -1783,3 +1783,33 @@ Replaced all instances of `$var || 'default'` with `!empty($var) ? $var : 'defau
 - [x] DECISIONS.md updated with session entry
 
 ---
+
+## Session 35 — Mobile CSS Fixes (2026-04-26)
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| Assumption surfacing | Named assumption about 768px breakpoint appropriateness | Per AGENTS.md Rule 1, assumption surfaced before implementation: "The 768px breakpoint is the appropriate mobile breakpoint for all these issues, and that app.css rules will have sufficient specificity when appended to the existing media query." |
+| Issue 1 & 2 Fix | `#dta-exhibit-main { max-width: 100%; padding: 16px; }` | exhibit.php `<main>` was ~2x screen width on mobile; fluid max-width with reduced padding matches portfolio.php behavior |
+| Issue 3 Fix | `#dta-exhibit-header a { font-size: 0; }` with `::before { content: "←"; font-size: 16px; }` | "All Artworks" text was distracting on mobile; hiding text and showing only arrow reduces visual clutter |
+| Issue 4 Fix | `.dta-hamburger { margin-left: auto; }` | Hamburger was centered due to flex container behavior; `margin-left: auto` pushes it to right edge of `.dta-header-title` flex item |
+| Issue 5 Fix | `#dta-main { flex-direction: column; }` with `#dta-sidebar { width: 100%; border-left: none; border-top: 2px solid #c9922a; }` | studio.php sidebar was side-by-side with canvas; column layout with full-width sidebar below canvas on mobile |
+| Specificity handling | Rules appended to existing 768px media query (lines 950-1028) | If specificity conflicts with exhibit.php inline styles arise, `!important` or inline style block additions would be needed; app.css rules preferred first |
+
+### Files Modified
+| File | Lines | Purpose |
+|------|-------|---------|
+| `css/app.css` | +37 lines | Mobile CSS fixes appended to existing @media (max-width: 768px) block |
+
+### Assumptions Surfaced
+1. The 768px breakpoint is the appropriate mobile breakpoint for all issues (matches existing media query)
+2. app.css rules will have sufficient specificity when appended to the existing media query
+3. If specificity conflicts arise with exhibit.php's inline styles, !important or inline style block additions would be the fallback solution
+
+### Pre-Write Checklist Completed
+- [x] Irreversible decisions table checked — no schema or API changes
+- [x] Public API contract unchanged — pure CSS modifications only
+- [x] No new dependencies installed
+- [x] PROMPTS.md verification completed per Rule 7
+- [x] Assumption named per Rule 1
+
+---

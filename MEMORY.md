@@ -431,3 +431,19 @@
     Common JS→PHP developer confusion pattern.
     [Session 34: exhibit.php titles displayed as "1" instead of actual title;
     all 6 occurrences of `||` replaced with `!empty()` ternary]
+
+2026-04-26 · DESIGN · Mobile CSS breakpoints should consolidate fixes into existing
+    media queries rather than creating new ones — the 768px breakpoint serves
+    multiple pages (exhibit.php, studio.php, portfolio.php) with consistent
+    mobile behavior, and `margin-left: auto` on flex items provides right-
+    alignment without restructuring parent containers.
+    [Session 35: All 5 mobile CSS fixes appended to existing @media (max-width: 768px)
+    block; hamburger right-aligned via margin-left: auto rather than header refactor]
+
+2026-04-26 · WORKFLOW · CSS specificity issues with inline style blocks (exhibit.php's
+    `<style>` tag) can often be resolved by appending to the shared app.css media
+    query first; only escalate to `!important` or inline overrides if conflicts
+    persist after verification.
+    [Session 35: Plan noted exhibit.php's inline styles as potential conflict,
+    but app.css rules were preferred first; specificity handled via standard
+    cascade rather than !important]

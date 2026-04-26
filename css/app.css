@@ -983,4 +983,50 @@ html, body {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  /* Issue 1 & 2: exhibit.php main width - constrain to viewport */
+  #dta-exhibit-main {
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  /* Issue 3: Hide "All Artworks" text, show only arrow */
+  #dta-exhibit-header a {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+
+  #dta-exhibit-header a::before {
+    content: "←";
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* Issue 4: Hamburger right-aligned on mobile */
+  .dta-hamburger {
+    margin-left: auto;
+  }
+
+  /* Issue 5: studio.php sidebar stacks below canvas */
+  #dta-main {
+    flex-direction: column;
+    height: auto;
+    overflow: auto;
+  }
+
+  #dta-canvas-region {
+    flex: none;
+    width: 100%;
+    height: 60vh;
+    min-height: 300px;
+  }
+
+  #dta-sidebar {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    border-left: none;
+    border-top: 2px solid #c9922a;
+  }
 }
