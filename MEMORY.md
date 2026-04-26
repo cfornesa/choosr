@@ -424,3 +424,10 @@
     display any number of featured items without arbitrary truncation.
     [Session 30: api/artworks.php removes default PORTFOLIO_FEATURED_LIMIT
     for featured filter; index.php adds mobile breakpoint at 500px for single-column layout]
+
+2026-04-25 · BUG FIX · PHP `||` operator returns boolean (true/false), not the
+    first truthy value like JavaScript. Always use `!empty($var) ? $var : 'default'`
+    for default value fallbacks in PHP to handle both null and empty string cases.
+    Common JS→PHP developer confusion pattern.
+    [Session 34: exhibit.php titles displayed as "1" instead of actual title;
+    all 6 occurrences of `||` replaced with `!empty()` ternary]

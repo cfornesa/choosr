@@ -13,6 +13,10 @@ public/assets/thumbnails/*
 public/assets/*
 !public/assets/.gitkeep
 
+# SQL dumps and database files
+*.sql
+*.db
+
 # PHP dependencies (if Composer is added later)
 vendor/
 
