@@ -329,7 +329,7 @@ header('Expires: 0');
   
   <header id="dta-exhibit-header">
     <a href="/portfolio.php">←</a>
-    <h1><?php echo htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Untitled'); ?></h1>
+    <h1 class="dta-exhibit-title"><?php echo htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Untitled'); ?></h1>
   </header>
 
   <main id="dta-exhibit-main">

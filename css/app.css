@@ -996,6 +996,12 @@ html, body {
     letter-spacing: 0;
   }
 
+  /* Center the exhibit title across the header */
+  .dta-exhibit-title {
+    text-align: center;
+    flex: 1 1 100%;
+  }
+
   /* Issue 4: Hamburger right-aligned on mobile */
   .dta-hamburger {
     margin-left: auto;
