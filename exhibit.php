@@ -328,7 +328,7 @@ header('Expires: 0');
   <?php if ($artwork): ?>
   
   <header id="dta-exhibit-header">
-    <a href="/portfolio.php">← All Artworks</a>
+    <a href="/portfolio.php">←</a>
     <h1><?php echo htmlspecialchars(!empty($artwork['title']) ? $artwork['title'] : 'Untitled'); ?></h1>
   </header>
 

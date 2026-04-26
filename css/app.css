@@ -996,12 +996,6 @@ html, body {
     letter-spacing: 0;
   }
 
-  #dta-exhibit-header a::before {
-    content: "←";
-    font-size: 16px;
-    font-weight: 700;
-  }
-
   /* Issue 4: Hamburger right-aligned on mobile */
   .dta-hamburger {
     margin-left: auto;
