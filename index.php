@@ -317,7 +317,7 @@ $current_page = 'home';
   </main>
 
   <footer id="dta-landing-footer">
-    <p>Creatrweb Data Art: My data art workstation. Copyright (c) <?php echo date('Y'); ?> <a href="https://fornesus.com" style="color:#606060;" target="_blank">Fornesus</a>.</p>
+    <p>Creatrweb Data Art: My data art workstation. Copyright (c) <?php echo date('Y'); ?> <a href="https://creatrweb.com" style="color:#606060;" target="_blank">Fornesus</a>.</p>
     <p>Developed with open-source AI tools and models, such as: Vibe CLI, Kilo Code, and Opencode Go.</p>
     <p><a href="portfolio.php" style="color:#606060;">View all public artworks</a>.</p>
   </footer>
