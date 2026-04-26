@@ -303,9 +303,7 @@ $current_page = 'home';
     </div>
 
     <p id="dta-landing-description">
-      Transform your data into generative artwork. Upload CSV, TSV, or Excel files,
-      map columns to visual dimensions, and compose unique pieces using our
-      collection of art styles and palettes.
+      This is a personal data art workstation where I transform datasets that matter to me into generative art pieces. All data is beautiful and so are their expressions, whether abstract or informative.
     </p>
 
     <!-- Featured Pieces Section -->
@@ -320,7 +318,7 @@ $current_page = 'home';
 
   <footer id="dta-landing-footer">
     <p>Creatrweb Data Art: My data art workstation. Copyright (c) <?php echo date('Y'); ?> <a href="https://fornesus.com" style="color:#606060;" target="_blank">Fornesus</a>.</p>
-    <p>Developed with open-source AI tools and models: Vibe CLI, Kilo Code, Opencode Go.</p>
+    <p>Developed with open-source AI tools and models, such as: Vibe CLI, Kilo Code, and Opencode Go.</p>
     <p><a href="portfolio.php" style="color:#606060;">View all public artworks</a>.</p>
   </footer>
 
