@@ -447,3 +447,10 @@
     [Session 35: Plan noted exhibit.php's inline styles as potential conflict,
     but app.css rules were preferred first; specificity handled via standard
     cascade rather than !important]
+
+2026-04-26 · CSS · Inline `<style>` blocks in HTML documents override external CSS files
+    when they have equal specificity and load later in the document. Mobile fixes
+    for inline-styled elements must be added to the inline block itself, not the
+    external stylesheet.
+    [Session 36: exhibit.php mobile width fix required media query inside inline
+    `<style>` block because app.css rules were overridden by later-loading inline styles]

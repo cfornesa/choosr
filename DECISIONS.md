@@ -1813,3 +1813,50 @@ Replaced all instances of `$var || 'default'` with `!empty($var) ? $var : 'defau
 - [x] Assumption named per Rule 1
 
 ---
+
+## Session 36 — exhibit.php Mobile Width Fix (2026-04-26)
+
+**Issue:** `#dta-exhibit-main` renders at ~200% screen width on mobile because the inline `<style>` block sets `max-width: 1000px`, which exceeds the viewport width on small screens.
+
+**Root Cause:** Inline `<style>` blocks in HTML take precedence over external `app.css` because they appear later in the document and have equal specificity. The `max-width: 100%` rule added to app.css (lines 988-991) is overridden by exhibit.php's inline styles.
+
+| Choice | Decision | Rationale |
+|--------|----------|-----------|
+| Fix location | Added mobile media query inside exhibit.php's inline `<style>` block (lines 318-323) | Inline styles override app.css, so the fix must be in the inline block to take effect |
+| Breakpoint | `max-width: 768px` | Consistent with existing mobile breakpoints throughout the codebase |
+| Padding reduction | `padding: 16px` (vs `32px 24px` on desktop) | Better mobile UX with tighter margins on small screens |
+
+### Fix Details
+
+**exhibit.php lines 318-323:**
+```css
+@media (max-width: 768px) {
+  #dta-exhibit-main {
+    max-width: 100%;
+    padding: 16px;
+  }
+}
+```
+
+The media query is inserted just before the closing `</style>` tag (line 324), targeting only the `#dta-exhibit-main` element.
+
+### Assumptions Surfaced
+1. The 768px breakpoint is appropriate for mobile devices (consistent with existing codebase)
+2. The inline `<style>` block in exhibit.php is the appropriate place for this fix (not app.css)
+3. `max-width: 100%` will correctly constrain the element to viewport width on mobile
+
+### Files Modified
+| File | Lines | Purpose |
+|------|-------|---------|
+| `exhibit.php` | 318-323 | Added mobile media query for `#dta-exhibit-main` |
+
+### Pre-Write Checklist
+- [x] Irreversible decisions table checked — CSS only, no schema/API changes
+- [x] Public API contract unchanged — pure CSS modification
+- [x] No new dependencies installed
+- [x] Assumption named per Rule 1: "Adding a mobile media query inside exhibit.php's inline style block will correctly override the max-width: 1000px rule without affecting desktop layout"
+
+### MEMORY.md Proposal
+2026-04-26 · CSS · Inline `<style>` blocks in HTML documents override external CSS files when they have equal specificity and load later in the document. Mobile fixes for inline-styled elements must be added to the inline block itself, not the external stylesheet.
+
+---

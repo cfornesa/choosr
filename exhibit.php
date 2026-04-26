@@ -314,6 +314,13 @@ header('Expires: 0');
       border-top: 1px solid #2a2a2a;
       margin-top: 48px;
     }
+
+    @media (max-width: 768px) {
+      #dta-exhibit-main {
+        max-width: 100%;
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
