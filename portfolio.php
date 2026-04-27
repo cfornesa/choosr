@@ -186,7 +186,7 @@ $current_page = 'portfolio';
   <!-- Header with Navigation -->
   <header id="dta-header">
     <div class="dta-header-title">
-      <h1><a href="/index.html">Creatrweb Data Art</a></h1>
+      <h1><a href="/index.php">Creatrweb Data Art</a></h1>
       <button class="dta-hamburger" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
     </div>
     <nav class="dta-nav">

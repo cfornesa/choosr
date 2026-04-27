@@ -314,6 +314,10 @@ $current_page = 'home';
         <!-- Featured artworks will be loaded dynamically -->
       </div>
     </section>
+
+    <p id="dta-landing-description">
+      The point of these pieces are not to meaningfully reflect the data but, rather, to experiment with different creative manifestations of visualizing data. This is data art, not data visualization.
+    </p>
   </main>
 
   <footer id="dta-landing-footer">
